@@ -9,7 +9,16 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: ['xitique.famba.online'],
     hmr: {
-      clientPort: 443, // Forces WebSocket to connect over the standard HTTPS port
+      clientPort: 443, 
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
+      }
     }
   }
 })
