@@ -19,7 +19,17 @@ async function handleMessage(sock, msg) {
         sessions.set(jid, session);
     }
 
-    // Command: /login <password>
+    // Helper to check if user is Super Admin via DB
+    const checkIsSuperAdmin = async () => {
+        try {
+            const resp = await botApi.getUserInfo(phone);
+            return resp.data.role === 'SUPER_ADMIN';
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // Command: /login <password> (Optional fallback)
     if (text.toLowerCase().startsWith('/login ')) {
         const password = text.split(' ')[1];
         if (password === process.env.ADMIN_PASSWORD) {
@@ -30,9 +40,12 @@ async function handleMessage(sock, msg) {
         }
     }
 
+    // Admin Commands: Identify Super Admin automatically
+    const isSuper = session.isAdmin || await checkIsSuperAdmin();
+
     // Command: /botname <novo_nome> (Admin Only)
     if (text.toLowerCase().startsWith('/botname ')) {
-        if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
+        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores." });
         
         const newName = text.substring(9).trim();
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -44,7 +57,7 @@ async function handleMessage(sock, msg) {
 
     // Command: /botrules <novas_regras> (Admin Only)
     if (text.toLowerCase().startsWith('/botrules ')) {
-        if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
+        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores." });
         
         const newRules = text.substring(10).trim();
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -75,29 +88,21 @@ async function handleMessage(sock, msg) {
 
     // Command: /git (Admin only - Update system)
     if (text.toLowerCase() === '/git') {
-        try {
-            const resp = await botApi.getUserInfo(phone);
-            if (resp.data.role !== 'SUPER_ADMIN' && !session.isAdmin) {
-                return sock.sendMessage(jid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
+        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
+
+        await sock.sendMessage(jid, { text: "⚙️ Iniciando atualização via `update.sh`... Isso pode demorar alguns segundos." });
+
+        const { exec } = require('child_process');
+        const updatePath = path.join(__dirname, '..', 'update.sh');
+
+        exec(`sh "${updatePath}"`, (error, stdout, stderr) => {
+            if (error) {
+                return sock.sendMessage(jid, { text: `❌ Erro na atualização:\n${error.message}` });
             }
-
-            await sock.sendMessage(jid, { text: "⚙️ Iniciando atualização via `update.sh`... Isso pode demorar alguns segundos." });
-
-            const { exec } = require('child_process');
-            const path = require('path');
-            const updatePath = path.join(__dirname, '..', 'update.sh');
-
-            exec(`sh "${updatePath}"`, (error, stdout, stderr) => {
-                if (error) {
-                    return sock.sendMessage(jid, { text: `❌ Erro na atualização:\n${error.message}` });
-                }
-                const output = stdout.substring(stdout.length - 500); 
-                sock.sendMessage(jid, { text: `✅ Atualização Concluída!\n\n*Resumo das últimas linhas:*\n\`\`\`${output}\`\`\`` });
-            });
-            return;
-        } catch (e) {
-            return sock.sendMessage(jid, { text: "⚠️ Erro ao verificar permissões de admin." });
-        }
+            const output = stdout.substring(stdout.length - 500); 
+            sock.sendMessage(jid, { text: `✅ Atualização Concluída!\n\n*Resumo das últimas linhas:*\n\`\`\`${output}\`\`\`` });
+        });
+        return;
     }
 
     // --- MAIN INTERACTION FLOW ---
