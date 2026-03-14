@@ -7,6 +7,9 @@ export default defineConfig({
   server: {
     port: 3009,
     host: '0.0.0.0',
-    allowedHosts: ['xitique.famba.online']
+    allowedHosts: ['xitique.famba.online'],
+    hmr: {
+      clientPort: 443, // Forces WebSocket to connect over the standard HTTPS port
+    }
   }
 })
