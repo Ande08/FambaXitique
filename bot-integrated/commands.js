@@ -1,6 +1,7 @@
 const botApi = require('./api');
+const { getAIResponse } = require('./ai');
 
-const sessions = new Map(); // sender -> { step, userData, groupId, groupName }
+const sessions = new Map(); // sender -> { step, userData, groupId, groupName, history: [] }
 
 async function handleMessage(sock, msg) {
     const jid = msg.key.remoteJid;
@@ -170,6 +171,33 @@ async function handleMessage(sock, msg) {
         }
         session.step = 'group_menu';
         return;
+    }
+
+    // --- AI FALLBACK ---
+    // If no active session or command matched, let AI handle it
+    try {
+        await sock.sendPresenceUpdate('composing', jid);
+        
+        // Ensure session exists for history
+        if (!session) {
+            session = { history: [] };
+            sessions.set(jid, session);
+        }
+        if (!session.history) session.history = [];
+
+        const aiResponse = await getAIResponse(text, phone, session.history);
+        
+        // Update history
+        session.history.push({ role: 'user', content: text });
+        session.history.push({ role: 'assistant', content: aiResponse });
+        
+        // Limit history size
+        if (session.history.length > 10) session.history = session.history.slice(-10);
+
+        await sock.sendMessage(jid, { text: aiResponse });
+        await sock.sendPresenceUpdate('paused', jid);
+    } catch (aiErr) {
+        console.error('💥 AI Error in handler:', aiErr.message);
     }
 }
 

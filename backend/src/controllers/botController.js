@@ -195,8 +195,8 @@ exports.submitBotLoanRequest = async (req, res) => {
 
 exports.getNotifications = async (req, res) => {
     try {
-        // Find pending notifications
-        // We include Group and its Admin's active Plan if groupId exists
+        console.log("📡 [BOT-API] Buscando notificações pendentes...");
+        
         const notifications = await BotNotification.findAll({
             where: { status: 'pending' },
             include: [
@@ -206,7 +206,7 @@ exports.getNotifications = async (req, res) => {
                     required: false,
                     include: [{
                         model: User,
-                        as: 'Creator', // This is the adminId link
+                        as: 'Creator',
                         include: [{
                             model: Subscription,
                             as: 'Subscriptions',
@@ -217,23 +217,55 @@ exports.getNotifications = async (req, res) => {
                     }]
                 }
             ],
-            limit: 100
+            limit: 50
         });
 
-        // Filter: 
-        // 1. If no groupId (OTP), allow.
-        // 2. If groupId, check if Group Creator has a plan with botEnabled: true
+        console.log(`📡 [BOT-API] Encontradas ${notifications.length} notificações brutas.`);
+
         const filtered = notifications.filter(n => {
-            if (!n.groupId) return true;
-            
-            const creator = n.Group?.Creator;
-            const activeSub = creator?.Subscriptions?.[0];
-            return activeSub?.Plan?.botEnabled === true;
+            try {
+                // Se não houver grupo (ex: OTP), permite o envio
+                if (!n.groupId) return true;
+                
+                const group = n.Group;
+                if (!group) {
+                    console.log(`⚠️ Notificação ${n.id} tem groupId mas grupo não foi encontrado.`);
+                    return false;
+                }
+
+                const creator = group.Creator;
+                if (!creator) {
+                    console.log(`⚠️ Grupo ${group.id} da notificação ${n.id} não tem Creator associado.`);
+                    return false;
+                }
+
+                const activeSub = creator.Subscriptions?.[0];
+                if (!activeSub) {
+                    console.log(`ℹ️ Admin ${creator.phone} do grupo ${group.name} não tem assinatura ativa.`);
+                    return false;
+                }
+
+                const botEnabled = activeSub.Plan?.botEnabled === true;
+                if (!botEnabled) {
+                    console.log(`ℹ️ Plano ${activeSub.Plan?.name} do grupo ${group.name} não suporta Bot.`);
+                }
+                
+                return botEnabled;
+            } catch (err) {
+                console.error(`❌ Erro ao filtrar notificação ${n.id}:`, err.message);
+                return false;
+            }
         });
 
+        console.log(`📡 [BOT-API] Retornando ${filtered.length} notificações filtradas.`);
         res.json(filtered);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao buscar notificações', error: error.message });
+        console.error("💥 ERRO CRÍTICO em getNotifications:", error);
+        res.status(500).json({ 
+            message: 'Erro interno ao processar notificações', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
