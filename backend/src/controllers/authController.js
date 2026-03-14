@@ -18,8 +18,11 @@ exports.register = async (req, res) => {
 
     // Queue OTP for Registration (Simulated 6-digit code)
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Ensure phone has country code for WhatsApp
+    const formattedPhone = phone.startsWith('258') ? phone : `258${phone}`;
+
     await BotNotification.create({
-      phone: user.phone,
+      phone: formattedPhone,
       userId: user.id,
       type: 'OTP_REGISTRATION',
       content: `Olá ${user.firstName}! Bem-vindo ao FambaXitique. Seu código de ativação é: ${otp}`,
@@ -105,9 +108,12 @@ exports.requestReset = async (req, res) => {
 
     console.log(`[PASSWORD RESET] Code for ${phone}: ${resetToken}`);
     
+    // Ensure phone has country code for WhatsApp
+    const formattedPhone = phone.startsWith('258') ? phone : `258${phone}`;
+
     // Queue OTP for WhatsApp
     await BotNotification.create({
-      phone: user.phone,
+      phone: formattedPhone,
       userId: user.id,
       type: 'OTP_RESET',
       content: `FambaXitique: Seu código de recuperação de senha é: ${resetToken}`,
