@@ -1,0 +1,270 @@
+const { Group, Membership, User, ValidationCode, Loan, LoanVote } = require('../models');
+const crypto = require('crypto');
+
+exports.createGroup = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const group = await Group.create({
+      name,
+      description,
+      adminId: req.user.id
+    });
+
+    // Automatically make creator the ADMIN
+    await Membership.create({
+      UserId: req.user.id,
+      GroupId: group.id,
+      role: 'ADMIN'
+    });
+
+    res.status(201).json({ message: 'Group created successfully', group });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating group', error: error.message });
+  }
+};
+
+exports.getGroups = async (req, res) => {
+  try {
+    // Both Regular users and Super Admins see ONLY groups they belong to in the dashboard views
+    // ( Sequelize with where in include performs an INNER JOIN )
+    const groups = await Group.findAll({
+      include: [
+        {
+          model: User,
+          as: 'Members',
+          where: { id: req.user.id },
+          through: { attributes: ['role'] }
+        },
+        { 
+          model: Loan, 
+          as: 'Loans',
+          include: [
+            { model: User, as: 'User', attributes: ['id', 'firstName', 'lastName'] },
+            { model: LoanVote, as: 'Votes' }
+          ]
+        }
+      ]
+    });
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching groups', error: error.message });
+  }
+};
+
+exports.getPendingGroups = async (req, res) => {
+  try {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const groups = await Group.findAll({ 
+      where: { status: 'pending' }, 
+      include: [{ model: User, as: 'Creator', attributes: ['id', 'firstName', 'lastName', 'phone'] }] 
+    });
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching pending groups', error: error.message });
+  }
+};
+
+exports.updateGroupStatus = async (req, res) => {
+  try {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { id } = req.params;
+    const { status } = req.body; // 'active' or 'rejected'
+    
+    const group = await Group.findByPk(id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    
+    group.status = status;
+    await group.save();
+    
+    res.json({ message: `Group ${status} successfully`, group });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating group status', error: error.message });
+  }
+};
+
+exports.getGroupDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const group = await Group.findByPk(id, {
+            include: [
+                { model: User, as: 'Members', attributes: ['id', 'firstName', 'lastName', 'phone'], through: { attributes: ['role'] } },
+                { model: Loan, as: 'Loans' }
+            ]
+        });
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+        res.json(group);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching group details', error: error.message });
+    }
+};
+
+exports.generateJoinCode = async (req, res) => {
+  try {
+    const { groupId } = req.body;
+    const group = await Group.findByPk(groupId);
+
+    if (!group || group.adminId !== req.user.id) {
+      return res.status(403).json({ message: 'Only admins can generate join codes' });
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    
+    // Set expiry to 24 hours from now
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    await ValidationCode.create({
+      code,
+      groupId,
+      userId: req.user.id, // Who generated it
+      expiresAt,
+      used: false
+    });
+
+    res.json({ code });
+  } catch (error) {
+    res.status(500).json({ message: 'Error generating code', error: error.message });
+  }
+};
+
+exports.joinGroupByCode = async (req, res) => {
+  try {
+    const { code } = req.body;
+    const validation = await ValidationCode.findOne({
+      where: { code, used: false },
+      include: [{ association: 'Group' }]
+    });
+
+    if (!validation) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+
+    if (new Date() > validation.expiresAt) {
+      return res.status(400).json({ message: 'Code has expired' });
+    }
+
+    // Check if user is already a member
+    const existingMember = await Membership.findOne({
+      where: { UserId: req.user.id, GroupId: validation.groupId }
+    });
+
+    if (existingMember) {
+      return res.status(400).json({ message: 'You are already a member of this group' });
+    }
+
+    // Join as MEMBER
+    await Membership.create({
+      UserId: req.user.id,
+      GroupId: validation.groupId,
+      role: 'MEMBER'
+    });
+
+    // Mark code as used
+    validation.used = true;
+    await validation.save();
+
+    res.json({ message: 'Joined group successfully', group: validation.Group });
+  } catch (error) {
+    res.status(500).json({ message: 'Error joining group', error: error.message });
+  }
+};
+
+exports.updateGroupSettings = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, contributionAmount, contributionFrequency, paymentMethods, dueDay, generateNow } = req.body;
+
+    const group = await Group.findByPk(id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    // Ensure requester is the admin
+    if (group.adminId !== req.user.id) {
+      return res.status(403).json({ message: 'Only the group admin can update settings' });
+    }
+
+    // Ensure group is active
+    if (group.status !== 'active') {
+      return res.status(400).json({ message: 'Group must be approved before configuring settings' });
+    }
+
+    if (name !== undefined) group.name = name;
+    if (contributionAmount !== undefined) group.contributionAmount = contributionAmount;
+    if (contributionFrequency !== undefined) group.contributionFrequency = contributionFrequency;
+    if (paymentMethods !== undefined) group.paymentMethods = paymentMethods;
+    if (dueDay !== undefined) group.dueDay = dueDay;
+    if (req.body.loanInterestRate !== undefined) group.loanInterestRate = req.body.loanInterestRate;
+    
+    await group.save();
+
+    // Trigger immediate generation if requested
+    if (generateNow) {
+      const { automateInvoiceGeneration } = require('./invoiceController');
+      // We can run this specifically for this group or just trigger the global check
+      // For precision, let's trigger it 
+      await automateInvoiceGeneration(group.id);
+    }
+
+    res.json({ message: 'Settings updated successfully', group });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating settings', error: error.message });
+  }
+};
+
+exports.getGroupReport = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { Invoice, Loan, User, LoanVote } = require('../models');
+
+        const group = await Group.findByPk(id, {
+            include: [
+                { model: Invoice, as: 'Invoices', include: [{ model: User, as: 'User', attributes: ['firstName', 'lastName'] }] },
+                { model: Loan, as: 'Loans', include: [{ model: User, as: 'User', attributes: ['firstName', 'lastName'] }] },
+                { model: User, as: 'Members', attributes: ['id', 'firstName', 'lastName', 'phone'] }
+            ]
+        });
+
+        if (!group) return res.status(404).json({ message: 'Group not found' });
+
+        const report = {
+            groupName: group.name,
+            balance: group.balance,
+            interestRate: group.loanInterestRate,
+            invoices: {
+                total: group.Invoices.length,
+                paid: group.Invoices.filter(i => i.status === 'paid').length,
+                pending: group.Invoices.filter(i => i.status === 'pending').length,
+                overdue: group.Invoices.filter(i => i.status === 'overdue').length,
+                totalAmount: group.Invoices.reduce((sum, i) => sum + Number(i.amount), 0),
+                paidAmount: group.Invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + Number(i.amount), 0)
+            },
+            loans: {
+                totalCount: group.Loans.length,
+                activeCount: group.Loans.filter(l => l.status === 'approved').length,
+                settledCount: group.Loans.filter(l => l.status === 'settled').length,
+                totalLoaned: group.Loans.filter(l => l.status !== 'rejected').reduce((sum, l) => sum + Number(l.amountRequested), 0),
+                totalInterest: group.Loans.filter(l => l.status === 'approved' || l.status === 'settled').reduce((sum, l) => sum + (Number(l.totalToRepay) - Number(l.amountRequested)), 0),
+                remainingBalance: group.Loans.filter(l => l.status === 'approved').reduce((sum, l) => sum + Number(l.remainingBalance), 0)
+            },
+            members: group.Members.map(member => {
+                const memberInvoices = group.Invoices.filter(i => i.userId === member.id);
+                const memberLoans = group.Loans.filter(l => l.userId === member.id);
+                return {
+                    id: member.id,
+                    name: `${member.firstName} ${member.lastName}`,
+                    phone: member.phone,
+                    invoicesPaid: memberInvoices.filter(i => i.status === 'paid').length,
+                    invoicesPending: memberInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').length,
+                    activeLoanBalance: memberLoans.filter(l => l.status === 'approved').reduce((sum, l) => sum + Number(l.remainingBalance), 0)
+                };
+            })
+        };
+
+        res.json(report);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};

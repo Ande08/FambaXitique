@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Environment variables
+
+
+# Uploads
+uploads/
+**/uploads/
+backend/uploads/receipts/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build files
+dist/
+**/dist/
+build/
+**/build/
