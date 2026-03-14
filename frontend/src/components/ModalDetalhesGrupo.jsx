@@ -9,13 +9,26 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
   const [invoiceLoading, setInvoiceLoading] = useState(null); // userId
   const [paymentHistory, setPaymentHistory] = useState({}); // userId -> payments array
   const [userInvoices, setUserInvoices] = useState({}); // userId -> invoices array
+  const [pendingRemovals, setPendingRemovals] = useState([]);
   const [invoiceFilter, setInvoiceFilter] = useState('all');
+  const [actionLoading, setActionLoading] = useState(null);
+  
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = group?.adminId === currentUser.id;
 
   useEffect(() => {
     if (show && group) {
       fetchMembers();
+      fetchPendingRemovals();
     }
   }, [show, group]);
+
+  const fetchPendingRemovals = async () => {
+    try {
+      const res = await api.get(`/groups/${group.id}/pending-removals`);
+      setPendingRemovals(res.data);
+    } catch (err) {}
+  };
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -62,21 +75,39 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
     }
   };
 
-  const handleDownloadReceipt = async (paymentId) => {
+  const handleRequestRemoval = async (targetUserId) => {
+    const reason = prompt('Por que deseja remover este membro?');
+    if (!reason) return;
+
+    setActionLoading(targetUserId);
     try {
-      const response = await api.get(`/payments/receipt/${paymentId}`, {
-        responseType: 'blob'
+      await api.post('/groups/request-removal', { 
+        groupId: group.id, 
+        targetUserId, 
+        reason 
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Recibo_${paymentId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      alert('Pedido de remoção enviado. A votação foi iniciada.');
+      fetchPendingRemovals();
     } catch (err) {
-      console.error('Erro ao baixar recibo:', err);
-      alert('Recibo ainda não disponível ou erro no download.');
+      alert(err.response?.data?.message || 'Erro ao solicitar remoção.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleVoteRemoval = async (removalId, vote) => {
+    setActionLoading(removalId);
+    try {
+      const res = await api.post('/groups/vote-removal', { removalId, vote });
+      alert(res.data.message);
+      if (res.data.status === 'approved') {
+        fetchMembers(); // Target was removed
+      }
+      fetchPendingRemovals();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Erro ao votar.');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -120,9 +151,22 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
                       <span className="fw-bold d-block text-dark">{member.firstName} {member.lastName}</span>
                       <small className="text-muted d-block" style={{ fontSize: '12px' }}>{member.phone}</small>
                     </div>
-                    <Badge bg={member.Membership?.role === 'ADMIN' ? 'dark' : 'light'} text={member.Membership?.role === 'ADMIN' ? 'white' : 'dark'} className="rounded-pill px-3 py-2 border">
-                      {member.Membership?.role === 'ADMIN' ? 'Admin' : 'Membro'}
-                    </Badge>
+                    <div className="d-flex align-items-center gap-2">
+                      <Badge bg={member.Membership?.role === 'ADMIN' ? 'dark' : 'light'} text={member.Membership?.role === 'ADMIN' ? 'white' : 'dark'} className="rounded-pill px-3 py-2 border">
+                        {member.Membership?.role === 'ADMIN' ? 'Admin' : 'Membro'}
+                      </Badge>
+                      {isAdmin && member.id !== currentUser.id && (
+                        <Button 
+                          variant="outline-danger" 
+                          size="sm" 
+                          className="rounded-pill px-2 py-1"
+                          onClick={(e) => { e.stopPropagation(); handleRequestRemoval(member.id); }}
+                          disabled={actionLoading === member.id}
+                        >
+                          <i className="bi bi-person-x"></i>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </Accordion.Header>
                 <Accordion.Body className="bg-light p-0">
@@ -264,6 +308,34 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
                           )}
                         </div>
                       </Tab>
+                      
+                      {pendingRemovals.length > 0 && (
+                        <Tab eventKey="removals" title={`Votações (${pendingRemovals.length})`}>
+                          <div className="py-3">
+                            <h6 className="fw-bold mb-3 small text-uppercase opacity-75">Processos de Remoção Pendentes</h6>
+                            {pendingRemovals.map(rem => (
+                              <Card key={rem.id} className="border shadow-none mb-2 rounded-3">
+                                <Card.Body className="p-3 d-flex justify-content-between align-items-center">
+                                  <div>
+                                    <span className="fw-bold d-block">Remover: {rem.Target?.firstName} {rem.Target?.lastName}</span>
+                                    <small className="text-muted">Motivo: {rem.reason || 'Não informado'}</small>
+                                    <div className="mt-1">
+                                      <Badge bg="info" className="me-2">{rem.Votes?.filter(v => v.vote === 'approve').length} Sim</Badge>
+                                      <Badge bg="secondary">{rem.Votes?.filter(v => v.vote === 'reject').length} Não</Badge>
+                                    </div>
+                                  </div>
+                                  {rem.targetUserId !== currentUser.id && !rem.Votes?.find(v => v.userId === currentUser.id) && (
+                                    <div className="d-flex gap-2">
+                                      <Button variant="success" size="sm" onClick={() => handleVoteRemoval(rem.id, 'approve')} disabled={actionLoading === rem.id}>Aprovar</Button>
+                                      <Button variant="danger" size="sm" onClick={() => handleVoteRemoval(rem.id, 'reject')} disabled={actionLoading === rem.id}>Rejeitar</Button>
+                                    </div>
+                                  )}
+                                </Card.Body>
+                              </Card>
+                            ))}
+                          </div>
+                        </Tab>
+                      )}
                     </Tabs>
                   </div>
                 </Accordion.Body>

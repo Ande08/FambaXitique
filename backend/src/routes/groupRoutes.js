@@ -12,6 +12,12 @@ router.get('/admin/stats', groupController.getAdminStats);
 router.get('/admin/all', groupController.getAllGroups);
 router.get('/:id', groupController.getGroupDetails);
 router.get('/:id/report', groupController.getGroupReport);
+
+// Member Removal
+router.post('/request-removal', groupController.requestMemberRemoval);
+router.post('/vote-removal', groupController.voteMemberRemoval);
+router.get('/:groupId/pending-removals', groupController.getPendingRemovals);
+
 router.post('/generate-code', groupController.generateJoinCode);
 router.post('/join', groupController.joinGroupByCode);
 router.post('/:id/status', groupController.updateGroupStatus);

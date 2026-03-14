@@ -11,6 +11,8 @@ const Plan = require('./Plan');
 const Subscription = require('./Subscription');
 const AdminPaymentMethod = require('./AdminPaymentMethod');
 const SubscriptionPayment = require('./SubscriptionPayment');
+const MemberRemoval = require('./MemberRemoval');
+const RemovalVote = require('./RemovalVote');
 
 // Relationships
 User.belongsToMany(Group, { through: Membership, as: 'Groups' });
@@ -78,7 +80,22 @@ User.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'use
 SubscriptionPayment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Plan.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'planId' });
-SubscriptionPayment.belongsTo(Plan, { as: 'Plan', foreignKey: 'planId' });
+SubscriptionPayment.belongsTo(Plan, { foreignKey: 'planId' });
+
+// Member Removal & Voting
+Group.hasMany(MemberRemoval, { foreignKey: 'groupId' });
+MemberRemoval.belongsTo(Group, { foreignKey: 'groupId' });
+
+User.hasMany(MemberRemoval, { as: 'RemovalRequests', foreignKey: 'requesterId' });
+User.hasMany(MemberRemoval, { as: 'RemovalTargets', foreignKey: 'targetUserId' });
+MemberRemoval.belongsTo(User, { as: 'Requester', foreignKey: 'requesterId' });
+MemberRemoval.belongsTo(User, { as: 'Target', foreignKey: 'targetUserId' });
+
+MemberRemoval.hasMany(RemovalVote, { as: 'Votes', foreignKey: 'removalId' });
+RemovalVote.belongsTo(MemberRemoval, { foreignKey: 'removalId' });
+
+User.hasMany(RemovalVote, { foreignKey: 'userId' });
+RemovalVote.belongsTo(User, { foreignKey: 'userId' });
 
 module.exports = {
   User,
@@ -93,5 +110,7 @@ module.exports = {
   Plan,
   Subscription,
   AdminPaymentMethod,
-  SubscriptionPayment
+  SubscriptionPayment,
+  MemberRemoval,
+  RemovalVote
 };

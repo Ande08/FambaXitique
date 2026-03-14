@@ -1,4 +1,4 @@
-const { Group, Membership, User, ValidationCode, Loan, LoanVote, Invoice, Plan, Subscription } = require('../models');
+const { Group, Membership, User, ValidationCode, Loan, LoanVote, Invoice, Plan, Subscription, MemberRemoval, RemovalVote } = require('../models');
 const crypto = require('crypto');
 
 exports.createGroup = async (req, res) => {
@@ -320,4 +320,124 @@ exports.getGroupReport = async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
+};
+
+exports.requestMemberRemoval = async (req, res) => {
+  try {
+    const { groupId, targetUserId, reason } = req.body;
+    
+    // Check if requester is group admin
+    const group = await Group.findByPk(groupId);
+    if (!group || group.adminId !== req.user.id) {
+      return res.status(403).json({ message: 'Apenas o administrador do grupo pode solicitar a remoção de membros.' });
+    }
+
+    // Check if target is a member
+    const targetMembership = await Membership.findOne({ where: { UserId: targetUserId, GroupId: groupId } });
+    if (!targetMembership) {
+      return res.status(404).json({ message: 'O usuário alvo não é membro deste grupo.' });
+    }
+
+    if (targetUserId === req.user.id) {
+      return res.status(400).json({ message: 'Você não pode remover a si mesmo através deste processo.' });
+    }
+
+    // Check if there is already a pending removal
+    const existingRemoval = await MemberRemoval.findOne({ where: { groupId, targetUserId, status: 'pending' } });
+    if (existingRemoval) {
+      return res.status(400).json({ message: 'Já existe um processo de remoção pendente para este membro.' });
+    }
+
+    const removal = await MemberRemoval.create({
+      groupId,
+      requesterId: req.user.id,
+      targetUserId,
+      reason,
+      status: 'pending'
+    });
+
+    res.status(201).json({ message: 'Pedido de remoção criado. A votação foi iniciada.', removal });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao solicitar remoção', error: error.message });
+  }
+};
+
+exports.voteMemberRemoval = async (req, res) => {
+  try {
+    const { removalId, vote } = req.body; // vote: 'approve' or 'reject'
+    
+    const removal = await MemberRemoval.findByPk(removalId, {
+      include: [{ model: Group }]
+    });
+
+    if (!removal || removal.status !== 'pending') {
+      return res.status(404).json({ message: 'Processo de remoção não encontrado ou já finalizado.' });
+    }
+
+    // Check if voter is member of the group
+    const voterMembership = await Membership.findOne({ where: { UserId: req.user.id, GroupId: removal.groupId } });
+    if (!voterMembership) {
+      return res.status(403).json({ message: 'Apenas membros do grupo podem votar.' });
+    }
+
+    if (req.user.id === removal.targetUserId) {
+      return res.status(403).json({ message: 'Você não pode votar no seu próprio processo de remoção.' });
+    }
+
+    // Create or update vote
+    await RemovalVote.upsert({
+      removalId,
+      userId: req.user.id,
+      vote
+    });
+
+    // Check if threshold is met
+    const totalMembers = await Membership.count({ where: { GroupId: removal.groupId } });
+    const eligibleVoters = totalMembers - 1; // Everyone except the target user
+    
+    const approveVotes = await RemovalVote.count({ where: { removalId, vote: 'approve' } });
+    
+    // Majority threshold
+    if (approveVotes > eligibleVoters / 2) {
+      removal.status = 'approved';
+      await removal.save();
+      
+      // Execute removal
+      await Membership.destroy({ where: { UserId: removal.targetUserId, GroupId: removal.groupId } });
+      
+      // If the target member was the admin (unlikely given request logic), we'd need to handle that, 
+      // but only admin can request removal for now.
+    } else {
+      const rejectVotes = await RemovalVote.count({ where: { removalId, vote: 'reject' } });
+      // If reject votes make it impossible to reach majority approval
+      if (rejectVotes >= eligibleVoters / 2 + 1 || (eligibleVoters % 2 === 0 && rejectVotes === eligibleVoters / 2)) {
+         // This is a bit complex, let's just check if it's already impossible
+         // If more than half vote reject, it's rejected.
+         if (rejectVotes > eligibleVoters / 2) {
+           removal.status = 'rejected';
+           await removal.save();
+         }
+      }
+    }
+
+    res.json({ message: 'Voto registrado com sucesso.', status: removal.status });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao registrar voto', error: error.message });
+  }
+};
+
+exports.getPendingRemovals = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const removals = await MemberRemoval.findAll({
+      where: { groupId, status: 'pending' },
+      include: [
+        { model: User, as: 'Target', attributes: ['firstName', 'lastName', 'phone'] },
+        { model: RemovalVote, as: 'Votes' }
+      ]
+    });
+    res.json(removals);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar remoções pendentes', error: error.message });
+  }
 };

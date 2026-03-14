@@ -38,11 +38,14 @@ exports.register = async (req, res) => {
     }
 
     res.status(201).json({ 
-      message: 'User registered successfully. check WhatsApp for OTP.', 
+      message: 'Usuário registrado com sucesso. Verifique seu WhatsApp!', 
       user: { id: user.id, firstName: user.firstName, lastName: user.lastName, phone: user.phone } 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering user', error: error.message });
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ message: 'Este número de telefone já está registrado no sistema.' });
+    }
+    res.status(500).json({ message: 'Erro ao registrar usuário', error: error.message });
   }
 };
 
