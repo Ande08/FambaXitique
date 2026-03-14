@@ -95,8 +95,8 @@ const LandingPage = ({ onStart }) => {
         <Row className="g-4">
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <Card className="glass-card h-100 p-4 border-0">
-              <div className="bg-primary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-primary border-opacity-25 animate-float" style={{ width: 'fit-content' }}>
-                <i className="bi bi-whatsapp fs-3 text-primary"></i>
+              <div className="bg-primary rounded-4 p-3 mb-4 d-inline-block bg-opacity-25 border border-primary border-opacity-50 animate-float" style={{ width: 'fit-content' }}>
+                <i className="bi bi-whatsapp fs-3 text-white"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Bot no WhatsApp</h3>
               <p className="text-white-50 mb-0">
@@ -106,8 +106,8 @@ const LandingPage = ({ onStart }) => {
           </Col>
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <Card className="glass-card h-100 p-4 border-0">
-              <div className="bg-secondary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-secondary border-opacity-25 animate-float" style={{ width: 'fit-content', animationDelay: '0.2s' }}>
-                <i className="bi bi-file-earmark-pdf fs-3 text-secondary"></i>
+              <div className="bg-secondary rounded-4 p-3 mb-4 d-inline-block bg-opacity-25 border border-secondary border-opacity-50 animate-float" style={{ width: 'fit-content', animationDelay: '0.2s' }}>
+                <i className="bi bi-file-earmark-pdf fs-3 text-white"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Automação Total</h3>
               <p className="text-white-50 mb-0">
@@ -117,8 +117,8 @@ const LandingPage = ({ onStart }) => {
           </Col>
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
             <Card className="glass-card h-100 p-4 border-0">
-              <div className="bg-info rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-info border-opacity-25 animate-float" style={{ width: 'fit-content', animationDelay: '0.4s' }}>
-                <i className="bi bi-shield-lock-fill fs-3 text-info"></i>
+              <div className="bg-info rounded-4 p-3 mb-4 d-inline-block bg-opacity-25 border border-info border-opacity-50 animate-float" style={{ width: 'fit-content', animationDelay: '0.4s' }}>
+                <i className="bi bi-shield-lock-fill fs-3 text-white"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Lending Comunitário</h3>
               <p className="text-white-50 mb-0">
