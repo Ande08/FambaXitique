@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
 require('dotenv').config();
 
-const AI_PROVIDER = process.env.AI_PROVIDER || 'groq';
+const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini';
 
 async function getGroqResponse(prompt, history = []) {
     const apiKey = process.env.GROQ_API_KEY;
@@ -51,7 +51,6 @@ async function getMistralResponse(prompt, history = []) {
     const apiKey = process.env.MISTRAL_API_KEY;
     if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
 
-    // Mistral also supports OpenAI format via their API
     const openai = new OpenAI({
         apiKey: apiKey,
         baseURL: "https://api.mistral.ai/v1"
@@ -91,36 +90,45 @@ async function getGeminiResponse(prompt, history = []) {
     return result.response.text();
 }
 
-async function getAIResponse(prompt, senderId, history = []) {
-    try {
-        switch (AI_PROVIDER.toLowerCase()) {
-            case 'gemini':
-                return await getGeminiResponse(prompt, history);
-            case 'openai':
-                return await getOpenAIResponse(prompt, history);
-            case 'mistral':
-                return await getMistralResponse(prompt, history);
-            default:
-                return await getGroqResponse(prompt, history);
-        }
-    } catch (err) {
-        console.error(`❌ AI Error (${AI_PROVIDER}):`, err.message);
-        
-        // Dynamic Fallback Chain
-        try {
-            if (process.env.GROQ_API_KEY && AI_PROVIDER !== 'groq') {
-                console.log('🔄 Fallback to Groq...');
-                return await getGroqResponse(prompt, history);
-            }
-            if (process.env.GEMINI_API_KEY && AI_PROVIDER !== 'gemini') {
-                console.log('🔄 Fallback to Gemini...');
-                return await getGeminiResponse(prompt, history);
-            }
-        } catch (fallbackErr) {
-            console.error('❌ Fallback AI Error:', fallbackErr.message);
-        }
-        return "Desculpe, estou com dificuldades em processar sua mensagem agora. Por favor, tente novamente em alguns instantes ou use o menu de comandos.";
+async function callProvider(provider, prompt, history) {
+    switch (provider.toLowerCase()) {
+        case 'gemini': return await getGeminiResponse(prompt, history);
+        case 'groq': return await getGroqResponse(prompt, history);
+        case 'mistral': return await getMistralResponse(prompt, history);
+        case 'openai': return await getOpenAIResponse(prompt, history);
+        default: throw new Error(`Provider ${provider} unknown`);
     }
+}
+
+async function getAIResponse(prompt, senderId, history = []) {
+    const hierarchy = ['gemini', 'groq', 'mistral', 'openai'];
+    
+    // 1. Try the selected provider first
+    let currentProvider = AI_PROVIDER.toLowerCase();
+    try {
+        console.log(`[AI] Attempting primary: ${currentProvider}...`);
+        return await callProvider(currentProvider, prompt, history);
+    } catch (err) {
+        console.error(`❌ Primary AI Error (${currentProvider}):`, err.message);
+
+        // 2. Iterate through hierarchy for fallback
+        for (const provider of hierarchy) {
+            if (provider === currentProvider) continue; // Already tried
+
+            try {
+                // Check if we have the key for this fallback
+                const keyName = `${provider.toUpperCase()}_API_KEY`;
+                if (!process.env[keyName]) continue;
+
+                console.log(`🔄 [AI] Falling back to: ${provider}...`);
+                return await callProvider(provider, prompt, history);
+            } catch (fallbackErr) {
+                console.error(`❌ Fallback AI Error (${provider}):`, fallbackErr.message);
+            }
+        }
+    }
+
+    return "Desculpe, estou com dificuldades em processar sua mensagem agora. Por favor, tente novamente em alguns instantes ou use o menu de comandos.";
 }
 
 module.exports = { getAIResponse };
