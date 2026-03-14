@@ -14,6 +14,10 @@ const Subscription = require('./Subscription');
 User.belongsToMany(Group, { through: Membership, as: 'Groups' });
 Group.belongsToMany(User, { through: Membership, as: 'Members' });
 
+// Group Creator association
+Group.belongsTo(User, { as: 'Creator', foreignKey: 'adminId' });
+User.hasMany(Group, { as: 'CreatedGroups', foreignKey: 'adminId' });
+
 User.hasMany(Payment, { as: 'Payments', foreignKey: 'userId' });
 Payment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
