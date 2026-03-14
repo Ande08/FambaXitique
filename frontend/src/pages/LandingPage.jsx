@@ -63,10 +63,11 @@ const LandingPage = ({ onStart }) => {
             <div className="position-relative">
               <div className="glass-card p-2 p-lg-4 rotate-3 shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1556742044-3c52d6e88c62?auto=format&fit=crop&q=80&w=1000" 
+                  src="https://images.unsplash.com/photo-1556742044-3c52d6e88c62?auto=format&fit=crop&q=80&w=800" 
                   alt="Finance App" 
                   className="img-fluid rounded-4 shadow"
                   style={{ minHeight: '400px', objectFit: 'cover' }}
+                  loading="eager"
                 />
               </div>
               {/* Floating Badge */}
@@ -93,8 +94,8 @@ const LandingPage = ({ onStart }) => {
         
         <Row className="g-4">
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <Card className="glass-card h-100 p-4">
-              <div className="bg-primary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-primary border-opacity-25" style={{ width: 'fit-content' }}>
+            <Card className="glass-card h-100 p-4 border-0">
+              <div className="bg-primary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-primary border-opacity-25 animate-float" style={{ width: 'fit-content' }}>
                 <i className="bi bi-whatsapp fs-3 text-primary"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Bot no WhatsApp</h3>
@@ -104,8 +105,8 @@ const LandingPage = ({ onStart }) => {
             </Card>
           </Col>
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <Card className="glass-card h-100 p-4">
-              <div className="bg-secondary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-secondary border-opacity-25" style={{ width: 'fit-content' }}>
+            <Card className="glass-card h-100 p-4 border-0">
+              <div className="bg-secondary rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-secondary border-opacity-25 animate-float" style={{ width: 'fit-content', animationDelay: '0.2s' }}>
                 <i className="bi bi-file-earmark-pdf fs-3 text-secondary"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Automação Total</h3>
@@ -115,8 +116,8 @@ const LandingPage = ({ onStart }) => {
             </Card>
           </Col>
           <Col md={4} className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-            <Card className="glass-card h-100 p-4">
-              <div className="bg-info rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-info border-opacity-25" style={{ width: 'fit-content' }}>
+            <Card className="glass-card h-100 p-4 border-0">
+              <div className="bg-info rounded-4 p-3 mb-4 d-inline-block bg-opacity-10 border border-info border-opacity-25 animate-float" style={{ width: 'fit-content', animationDelay: '0.4s' }}>
                 <i className="bi bi-shield-lock-fill fs-3 text-info"></i>
               </div>
               <h3 className="h4 fw-bold mb-3">Lending Comunitário</h3>
