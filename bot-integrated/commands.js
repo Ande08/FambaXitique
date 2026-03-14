@@ -29,6 +29,28 @@ async function handleMessage(sock, msg) {
         }
     };
 
+    // Command: /comandos or /ajuda
+    if (text.toLowerCase() === '/comandos' || text.toLowerCase() === '/ajuda') {
+        let helpMsg = `🤖 *Menu de Comandos FambaXitique*\n\n`;
+        helpMsg += `👉 */menu* ou */começar*: Inicia o menu interativo de grupos.\n`;
+        helpMsg += `👉 */plano*: Consulta os detalhes da sua assinatura.\n`;
+        helpMsg += `👉 */id*: Mostra o seu ID de usuário e telefone.\n\n`;
+        
+        if (isSuper) {
+            helpMsg += `👑 *Comandos de Administrador:*\n`;
+            helpMsg += `👉 */botname <nome>*: Altera o nome do bot.\n`;
+            helpMsg += `👉 */botrules <regras>*: Altera a personalidade do bot.\n`;
+            helpMsg += `👉 */git*: Atualiza o sistema (git pull).\n`;
+        }
+        
+        return sock.sendMessage(jid, { text: helpMsg });
+    }
+
+    // Command: /id
+    if (text.toLowerCase() === '/id') {
+        return sock.sendMessage(jid, { text: `👤 *Seu ID:* ${phone}\n📱 *Número:* ${phone}` });
+    }
+
     // Command: /login <password> (Optional fallback)
     if (text.toLowerCase().startsWith('/login ')) {
         const password = text.split(' ')[1];
