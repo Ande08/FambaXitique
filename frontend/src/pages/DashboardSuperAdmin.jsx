@@ -5,10 +5,13 @@ import { Container, Row, Col, Card, Button, Badge, Spinner, Table, Navbar, Nav }
 const DashboardSuperAdmin = ({ onLogout }) => {
   const [pendingGroups, setPendingGroups] = useState([]);
   const [allGroups, setAllGroups] = useState([]);
+  const [plans, setPlans] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalGroups: 0 });
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all', 'plans'
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null); 
+  const [planEditing, setPlanEditing] = useState(null); // Plan ID being edited
+  const [planForm, setPlanForm] = useState({ monthlyPrice: 0, groupLimit: 1, botEnabled: false, description: '' });
 
   useEffect(() => {
     fetchData();
@@ -17,19 +20,45 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pendingRes, allRes, statsRes] = await Promise.all([
+      const [pendingRes, allRes, statsRes, plansRes] = await Promise.all([
         api.get('/groups/pending-approval'),
         api.get('/groups/admin/all'),
-        api.get('/groups/admin/stats')
+        api.get('/groups/admin/stats'),
+        api.get('/plans')
       ]);
       setPendingGroups(pendingRes.data);
       setAllGroups(allRes.data);
       setStats(statsRes.data);
+      setPlans(plansRes.data);
     } catch (err) {
       console.error('Erro ao buscar dados do Admin:', err);
     } finally {
-      setLoading(false);
+      setActionLoading(null);
     }
+  };
+
+  const handleUpdatePlan = async () => {
+    try {
+      setActionLoading(planEditing);
+      await api.put(`/plans/${planEditing}`, planForm);
+      setPlanEditing(null);
+      fetchData();
+    } catch (err) {
+      console.error('Erro ao atualizar plano:', err);
+      alert('Erro ao guardar alterações.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const startEditPlan = (plan) => {
+    setPlanEditing(plan.id);
+    setPlanForm({
+      monthlyPrice: plan.monthlyPrice,
+      groupLimit: plan.groupLimit,
+      botEnabled: plan.botEnabled,
+      description: plan.description
+    });
   };
 
   const fetchPendingGroups = fetchData; // Keep compatibility if needed
@@ -99,11 +128,93 @@ const DashboardSuperAdmin = ({ onLogout }) => {
             <Nav.Item>
               <Nav.Link eventKey="all" className="rounded-pill px-4 ms-2">Todos os Grupos</Nav.Link>
             </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="plans" className="rounded-pill px-4 ms-2">Planos & Preços</Nav.Link>
+            </Nav.Item>
           </Nav>
         </div>
         
         {loading ? (
           <div className="text-center py-5"><Spinner animation="border" /></div>
+        ) : activeTab === 'plans' ? (
+          <Row className="g-4">
+            {plans.map(plan => (
+              <Col md={4} key={plan.id}>
+                <Card className={`border-0 shadow-sm rounded-4 h-100 ${planEditing === plan.id ? 'border-primary border border-2' : ''}`}>
+                  <Card.Body className="p-4">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <h4 className="fw-black mb-0">{plan.name}</h4>
+                      {plan.name === 'Premium' && <Badge bg="danger">POPULAR</Badge>}
+                    </div>
+                    {planEditing === plan.id ? (
+                      <div className="mt-3">
+                        <div className="mb-3">
+                          <label className="small text-muted mb-1">Preço Mensal (MT)</label>
+                          <input 
+                            type="number" 
+                            className="form-control form-control-sm" 
+                            value={planForm.monthlyPrice}
+                            onChange={e => setPlanForm({...planForm, monthlyPrice: e.target.value})}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="small text-muted mb-1">Limite de Grupos (-1 = ilimitado)</label>
+                          <input 
+                            type="number" 
+                            className="form-control form-control-sm" 
+                            value={planForm.groupLimit}
+                            onChange={e => setPlanForm({...planForm, groupLimit: e.target.value})}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <div className="form-check form-switch">
+                            <input 
+                              className="form-check-input" 
+                              type="checkbox" 
+                              checked={planForm.botEnabled}
+                              onChange={e => setPlanForm({...planForm, botEnabled: e.target.checked})}
+                            />
+                            <label className="form-check-label small">Incluir Bot de WhatsApp</label>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <Button 
+                            variant="primary" 
+                            size="sm" 
+                            className="w-100 fw-bold"
+                            onClick={handleUpdatePlan}
+                            disabled={actionLoading === plan.id}
+                          >
+                            {actionLoading === plan.id ? <Spinner animation="border" size="sm" /> : 'Guardar'}
+                          </Button>
+                          <Button variant="light" size="sm" className="w-100" onClick={() => setPlanEditing(null)}>Cancelar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="fw-black text-primary my-3">{Number(plan.monthlyPrice).toLocaleString()} <small className="fs-6 text-muted">MT / mês</small></h2>
+                        <ul className="list-unstyled mb-4">
+                          <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i> {plan.groupLimit === -1 ? 'Grupos Ilimitados' : `Até ${plan.groupLimit} Grupos`}</li>
+                          <li className="mb-2">
+                            <i className={`bi ${plan.botEnabled ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-muted'} me-2`}></i> 
+                            Notificações Bot WhatsApp
+                          </li>
+                          <li className="text-muted small italic">{plan.description}</li>
+                        </ul>
+                        <Button 
+                          variant="outline-primary" 
+                          className="w-100 rounded-pill fw-bold"
+                          onClick={() => startEditPlan(plan)}
+                        >
+                          Editar Pacote
+                        </Button>
+                      </>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         ) : (
           <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
             <Card.Body className="p-0">

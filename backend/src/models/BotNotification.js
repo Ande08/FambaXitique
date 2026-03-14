@@ -11,6 +11,10 @@ const BotNotification = sequelize.define('BotNotification', {
     type: DataTypes.UUID,
     allowNull: true
   },
+  groupId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
   phone: {
     type: DataTypes.STRING,
     allowNull: false

@@ -121,6 +121,7 @@ exports.approvePayment = async (req, res) => {
             await BotNotification.create({
                 phone: fullPayment.User.phone,
                 userId: fullPayment.User.id,
+                groupId: fullPayment.groupId,
                 type: notificationType,
                 content: message,
                 status: 'pending'

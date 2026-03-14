@@ -1,4 +1,4 @@
-const { User, Group, Membership, Payment, Loan, Invoice, BotNotification } = require('../models');
+const { User, Group, Membership, Payment, Loan, Invoice, BotNotification, Plan, Subscription } = require('../models');
 const { Op } = require('sequelize');
 
 exports.getUserInfo = async (req, res) => {
@@ -123,11 +123,43 @@ exports.submitBotLoanRequest = async (req, res) => {
 
 exports.getNotifications = async (req, res) => {
     try {
+        // Find pending notifications
+        // We include Group and its Admin's active Plan if groupId exists
         const notifications = await BotNotification.findAll({
             where: { status: 'pending' },
-            limit: 50
+            include: [
+                {
+                    model: Group,
+                    as: 'Group',
+                    required: false,
+                    include: [{
+                        model: User,
+                        as: 'Creator', // This is the adminId link
+                        include: [{
+                            model: Subscription,
+                            as: 'Subscriptions',
+                            where: { status: 'active' },
+                            required: false,
+                            include: [{ model: Plan, as: 'Plan' }]
+                        }]
+                    }]
+                }
+            ],
+            limit: 100
         });
-        res.json(notifications);
+
+        // Filter: 
+        // 1. If no groupId (OTP), allow.
+        // 2. If groupId, check if Group Creator has a plan with botEnabled: true
+        const filtered = notifications.filter(n => {
+            if (!n.groupId) return true;
+            
+            const creator = n.Group?.Creator;
+            const activeSub = creator?.Subscriptions?.[0];
+            return activeSub?.Plan?.botEnabled === true;
+        });
+
+        res.json(filtered);
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar notificações', error: error.message });
     }

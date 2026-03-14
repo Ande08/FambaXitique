@@ -38,12 +38,34 @@ const DashboardAdmin = ({ onLogout }) => {
   });
   const [updatingSettings, setUpdatingSettings] = useState(false);
   const [startingCycle, setStartingCycle] = useState(null); // groupId
+  const [subscription, setSubscription] = useState(null);
+  const [showPlansModal, setShowPlansModal] = useState(false);
+  const [allPlans, setAllPlans] = useState([]);
 
   useEffect(() => {
     fetchPayments();
     fetchUserGroups();
     fetchPendingLoans();
+    fetchSubscription();
   }, []);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await api.get('/plans/my-subscription');
+      setSubscription(res.data);
+    } catch (err) {
+      console.error('Erro ao buscar subscrição:', err);
+    }
+  };
+
+  const fetchAllPlans = async () => {
+    try {
+      const res = await api.get('/plans');
+      setAllPlans(res.data);
+    } catch (err) {
+      console.error('Erro ao buscar planos:', err);
+    }
+  };
 
   const handleUpdateSettings = async (e) => {
     e.preventDefault();
@@ -182,7 +204,24 @@ const DashboardAdmin = ({ onLogout }) => {
         <Row className="mb-4 align-items-center">
           <Col md>
             <h1 className="h3 fw-bold text-dark mb-1">Painel do Gestor</h1>
-            <p className="text-muted small">Gerencie seus grupos e valide pagamentos.</p>
+            <p className="text-muted small mb-0">Gerencie seus grupos e valide pagamentos.</p>
+            {subscription && (
+              <div className="mt-2">
+                <Badge bg={subscription.Plan?.name === 'Premium' ? 'warning' : subscription.Plan?.name === 'Básico' ? 'info' : 'secondary'} className="rounded-pill px-3 py-2 fw-bold text-dark">
+                  <i className="bi bi-star-fill me-2"></i> Plano {subscription.Plan?.name}
+                </Badge>
+                {subscription.Plan?.name === 'Grátis' && (
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="text-primary fw-bold text-decoration-none ms-2"
+                    onClick={() => { fetchAllPlans(); setShowPlansModal(true); }}
+                  >
+                    Fazer Upgrade 🚀
+                  </Button>
+                )}
+              </div>
+            )}
           </Col>
           <Col md="auto" className="d-flex gap-2">
             <Button 
@@ -756,6 +795,50 @@ const DashboardAdmin = ({ onLogout }) => {
           // For now, admins just view
         }}
       />
+
+      {/* Upgrade Plans Modal */}
+      <Modal show={showPlansModal} onHide={() => setShowPlansModal(false)} size="lg" centered>
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="fw-black">Escolha o seu Plano</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4 bg-light rounded-bottom-4">
+          <p className="text-muted mb-4">Aumente seus limites e desbloqueie as notificações do Bot de WhatsApp!</p>
+          <Row className="g-3">
+            {allPlans.map(plan => (
+              <Col md={4} key={plan.id}>
+                <Card className={`border-0 shadow-sm rounded-4 h-100 ${plan.name === 'Premium' ? 'border-primary border border-2' : ''}`}>
+                  <Card.Body className="p-4 d-flex flex-column">
+                    <h5 className="fw-bold mb-1">{plan.name}</h5>
+                    <h3 className="fw-black text-primary my-3">{Number(plan.monthlyPrice).toLocaleString()} <small className="fs-6 text-muted">MT</small></h3>
+                    <ul className="list-unstyled mb-4 small flex-grow-1">
+                      <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i> {plan.groupLimit === -1 ? 'Grupos Ilimitados' : `Até ${plan.groupLimit} Grupos`}</li>
+                      <li className="mb-2">
+                        <i className={`bi ${plan.botEnabled ? 'bi-check-circle-fill text-success' : 'bi-x-circle text-muted'} me-2`}></i> 
+                        Bot de WhatsApp
+                      </li>
+                      <li className="text-muted italic">{plan.description}</li>
+                    </ul>
+                    {subscription?.Plan?.id === plan.id ? (
+                      <Button variant="outline-dark" className="w-100 rounded-pill fw-bold" disabled>Plano Atual</Button>
+                    ) : (
+                      <Button 
+                        variant={plan.name === 'Premium' ? 'primary' : 'outline-primary'} 
+                        className="w-100 rounded-pill fw-bold"
+                        onClick={() => {
+                          const msg = encodeURIComponent(`Olá! Quero fazer o upgrade para o plano ${plan.name} no FambaXitique.`);
+                          window.open(`https://wa.me/258840000000?text=${msg}`, '_blank');
+                        }}
+                      >
+                        Selecionar
+                      </Button>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

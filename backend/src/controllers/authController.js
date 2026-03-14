@@ -1,10 +1,19 @@
-const { User, BotNotification } = require('../models');
+const { User, BotNotification, Plan, Subscription } = require('../models');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 exports.register = async (req, res) => {
   try {
     const { firstName, lastName, phone, password } = req.body;
+    
+    if (!firstName || !lastName || !phone || !password) {
+      return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
+    }
+
+    if (!/^\d{8,15}$/.test(phone)) {
+      return res.status(400).json({ message: 'Número de telefone inválido.' });
+    }
+
     const user = await User.create({ firstName, lastName, phone, password });
 
     // Queue OTP for Registration (Simulated 6-digit code)
@@ -16,6 +25,17 @@ exports.register = async (req, res) => {
       content: `Olá ${user.firstName}! Bem-vindo ao FambaXitique. Seu código de ativação é: ${otp}`,
       status: 'pending'
     });
+
+    // Auto-assign "Grátis" Plan
+    const freePlan = await Plan.findOne({ where: { name: 'Grátis' } });
+    if (freePlan) {
+      await Subscription.create({
+        userId: user.id,
+        planId: freePlan.id,
+        status: 'active',
+        endDate: new Date(Date.now() + 365 * 10 * 24 * 60 * 60 * 1000) // Default far expiry
+      });
+    }
 
     res.status(201).json({ 
       message: 'User registered successfully. check WhatsApp for OTP.', 
@@ -30,6 +50,10 @@ exports.login = async (req, res) => {
   console.log(`[DEBUG] Login attempt for phone: ${req.body.phone}`);
   try {
     const { phone, password } = req.body;
+    
+    if (!phone || !password) {
+      return res.status(400).json({ message: 'Telefone e senha são obrigatórios.' });
+    }
     console.log('[DEBUG] Finding user...');
     const user = await User.findOne({ where: { phone } });
 

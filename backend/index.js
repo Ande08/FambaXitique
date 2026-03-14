@@ -1,14 +1,28 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const sequelize = require('./src/config/database');
 const models = require('./src/models'); // This triggers associations
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+// --- Security Middlewares ---
+app.use(helmet()); // Basic security headers
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window`
+  standardHeaders: true, 
+  legacyHeaders: false,
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+// ----------------------------
+
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -36,13 +50,15 @@ const paymentRoutes = require('./src/routes/paymentRoutes');
 const invoiceRoutes = require('./src/routes/invoiceRoutes');
 const loanRoutes = require('./src/routes/loanRoutes');
 const botRoutes = require('./src/routes/botRoutes');
+const planRoutes = require('./src/routes/planRoutes');
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/bot', botRoutes);
+app.use('/api/plans', planRoutes);
 
 app.get('/', (req, res) => {
   res.send('FambaXitique API is running');

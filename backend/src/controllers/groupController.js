@@ -1,9 +1,32 @@
-const { Group, Membership, User, ValidationCode, Loan, LoanVote, Invoice } = require('../models');
+const { Group, Membership, User, ValidationCode, Loan, LoanVote, Invoice, Plan, Subscription } = require('../models');
 const crypto = require('crypto');
 
 exports.createGroup = async (req, res) => {
   try {
     const { name, description } = req.body;
+
+    // Check Plan Limits
+    const subscription = await Subscription.findOne({
+      where: { userId: req.user.id, status: 'active' },
+      include: [{ model: Plan, as: 'Plan' }]
+    });
+
+    const currentGroupsCount = await Group.count({ where: { adminId: req.user.id } });
+
+    if (subscription && subscription.Plan) {
+      const limit = subscription.Plan.groupLimit;
+      if (limit !== -1 && currentGroupsCount >= limit) {
+        return res.status(403).json({ 
+          message: `Atingiu o limite de grupos para o plano ${subscription.Plan.name} (${limit} grupos). Por favor, faça um upgrade para criar mais grupos.` 
+        });
+      }
+    } else {
+        // Default Grátis limit if no subscription found
+        if (currentGroupsCount >= 1) {
+            return res.status(403).json({ message: 'Limite de 1 grupo gratuito atingido. Torne-se Premium para criar mais!' });
+        }
+    }
+
     const group = await Group.create({
       name,
       description,

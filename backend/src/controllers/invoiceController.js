@@ -156,6 +156,7 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
                 await BotNotification.create({
                     phone: user.phone,
                     userId: user.id,
+                    groupId: group.id,
                     type: 'INVOICE_GENERATED',
                     content: `🔔 *Nova Fatura Gerada*\n\nOlá, *${user.firstName}*!\nFoi gerada a sua fatura de contribuição para o grupo *${group.name}*.\n\n💰 *Valor:* ${group.contributionAmount} MT\n📅 *Vencimento:* ${formattedDate}\n📂 *Referência:* ${monthName}/${year}\n\nPor favor, efetue o pagamento para manter seu status em dia.`,
                     status: 'pending'

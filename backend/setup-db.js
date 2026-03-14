@@ -1,5 +1,5 @@
 const sequelize = require('./src/config/database');
-const { User, Group, Membership, Payment, ValidationCode } = require('./src/models');
+const { User, Group, Membership, Payment, ValidationCode, Plan } = require('./src/models');
 
 async function initializeDatabase() {
   try {
@@ -28,6 +28,29 @@ async function initializeDatabase() {
     } else {
       console.log('Super Admin account already exists.');
     }
+
+    // Seed Plans
+    const plans = [
+      { name: 'Grátis', description: 'Plano básico gratuito', monthlyPrice: 0, groupLimit: 1, botEnabled: false },
+      { name: 'Básico', description: 'Até 3 grupos com bot', monthlyPrice: 500, groupLimit: 3, botEnabled: true },
+      { name: 'Premium', description: 'Grupos ilimitados com bot', monthlyPrice: 1500, groupLimit: -1, botEnabled: true }
+    ];
+
+    for (const planData of plans) {
+      const [plan, created] = await Plan.findOrCreate({
+        where: { name: planData.name },
+        defaults: planData
+      });
+      if (!created) {
+        // Update price in case Super Admin changed it via code or we want to reset
+        await plan.update({ 
+            description: planData.description,
+            groupLimit: planData.groupLimit,
+            botEnabled: planData.botEnabled
+        });
+      }
+    }
+    console.log('Plans seeded/updated successfully.');
 
     process.exit(0);
   } catch (error) {

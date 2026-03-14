@@ -110,6 +110,7 @@ exports.approveLoan = async (req, res) => {
                     await BotNotification.create({
                         phone: user.phone,
                         userId: user.id,
+                        groupId: group.id,
                         type: 'LOAN_APPROVED',
                         content: `🎊 *Empréstimo Aprovado!*\n\nOlá, *${user.firstName}*!\nSua solicitação de empréstimo no grupo *${group.name}* foi aprovada.\n\n💰 *Valor:* ${loan.amountRequested} MT\n💵 *Total a Repagar:* ${loan.totalToRepay} MT\n\nO comprovativo de transferência já está disponível no sistema.`,
                         status: 'pending'

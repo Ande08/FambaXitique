@@ -7,6 +7,8 @@ const Invoice = require('./Invoice');
 const Loan = require('./Loan');
 const LoanVote = require('./LoanVote');
 const BotNotification = require('./BotNotification');
+const Plan = require('./Plan');
+const Subscription = require('./Subscription');
 
 // Relationships
 User.belongsToMany(Group, { through: Membership, as: 'Groups' });
@@ -48,12 +50,22 @@ LoanVote.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 User.hasMany(BotNotification, { as: 'Notifications', foreignKey: 'userId' });
 BotNotification.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
+Group.hasMany(BotNotification, { as: 'Notifications', foreignKey: 'groupId' });
+BotNotification.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
+
 // Validation Codes
 User.hasMany(ValidationCode, { as: 'ValidationCodes', foreignKey: 'userId' });
 ValidationCode.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Group.hasMany(ValidationCode, { as: 'ValidationCodes', foreignKey: 'groupId' });
 ValidationCode.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
+
+// Subscriptions
+User.hasMany(Subscription, { as: 'Subscriptions', foreignKey: 'userId' });
+Subscription.belongsTo(User, { as: 'User', foreignKey: 'userId' });
+
+Plan.hasMany(Subscription, { as: 'Subscriptions', foreignKey: 'planId' });
+Subscription.belongsTo(Plan, { as: 'Plan', foreignKey: 'planId' });
 
 module.exports = {
   User,
@@ -64,5 +76,7 @@ module.exports = {
   Invoice,
   Loan,
   LoanVote,
-  BotNotification
+  BotNotification,
+  Plan,
+  Subscription
 };
