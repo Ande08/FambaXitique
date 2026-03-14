@@ -84,7 +84,23 @@ sudo ufw allow 5001/tcp
 sudo ufw allow 3009/tcp
 ```
 
-## 7. Logs e Monitoramento
+## 7. Solução de Erros Comuns
+
+### Erro: Access denied for user 'root'@'localhost'
+Se o PM2 der erro de conexão, rode estes comandos no terminal da VPS para permitir que o sistema use o MySQL:
+
+```bash
+sudo mysql
+```
+Dentro do MySQL, rode:
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'SUA_SENHA_AQUI';
+FLUSH PRIVILEGES;
+EXIT;
+```
+**Depois, edite o seu `backend/.env` e coloque a mesma senha!**
+
+## 8. Logs e Monitoramento
 ```bash
 pm2 status
 pm2 logs fambaxitique-api
