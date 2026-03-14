@@ -1,7 +1,10 @@
 const botApi = require('./api');
 const { getAIResponse } = require('./ai');
+const fs = require('fs');
+const path = require('path');
 
-const sessions = new Map(); // sender -> { step, userData, groupId, groupName, history: [] }
+const sessions = new Map(); // sender -> { step, userData, groupId, groupName, history: [], isAdmin: false }
+const configPath = path.join(__dirname, 'bot-config.json');
 
 async function handleMessage(sock, msg) {
     const jid = msg.key.remoteJid;
@@ -9,6 +12,47 @@ async function handleMessage(sock, msg) {
     const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
     
     if (!text) return;
+
+    let session = sessions.get(jid);
+    if (!session) {
+        session = { history: [], isAdmin: false };
+        sessions.set(jid, session);
+    }
+
+    // Command: !login <password>
+    if (text.toLowerCase().startsWith('!login ')) {
+        const password = text.split(' ')[1];
+        if (password === process.env.ADMIN_PASSWORD) {
+            session.isAdmin = true;
+            return sock.sendMessage(jid, { text: "🔓 *Login de Administrador realizado com sucesso!* Agora você pode usar comandos de gestão." });
+        } else {
+            return sock.sendMessage(jid, { text: "❌ Senha incorreta." });
+        }
+    }
+
+    // Command: !botname <novo_nome> (Admin Only)
+    if (text.toLowerCase().startsWith('!botname ')) {
+        if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
+        
+        const newName = text.substring(9).trim();
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        config.botName = newName;
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+        
+        return sock.sendMessage(jid, { text: `✅ Nome do bot alterado para: *${newName}*` });
+    }
+
+    // Command: !botrules <novas_regras> (Admin Only)
+    if (text.toLowerCase().startsWith('!botrules ')) {
+        if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
+        
+        const newRules = text.substring(10).trim();
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        config.botRules = newRules;
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+        
+        return sock.sendMessage(jid, { text: "✅ Regras de personalidade do bot atualizadas!" });
+    }
 
     // Command: !plano
     if (text.toLowerCase() === '!plano') {
@@ -33,7 +77,8 @@ async function handleMessage(sock, msg) {
     if (text.toLowerCase() === '!git') {
         try {
             const resp = await botApi.getUserInfo(phone);
-            if (resp.data.role !== 'SUPER_ADMIN') {
+            // Allow if either backend role is SUPER_ADMIN OR session.isAdmin is true
+            if (resp.data.role !== 'SUPER_ADMIN' && !session.isAdmin) {
                 return sock.sendMessage(jid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
             }
 
@@ -47,7 +92,7 @@ async function handleMessage(sock, msg) {
                 if (error) {
                     return sock.sendMessage(jid, { text: `❌ Erro na atualização:\n${error.message}` });
                 }
-                const output = stdout.substring(stdout.length - 500); // Last 500 chars
+                const output = stdout.substring(stdout.length - 500); 
                 sock.sendMessage(jid, { text: `✅ Atualização Concluída!\n\n*Resumo das últimas linhas:*\n\`\`\`${output}\`\`\`` });
             });
             return;
@@ -56,34 +101,41 @@ async function handleMessage(sock, msg) {
         }
     }
 
-    let session = sessions.get(jid);
+    // --- MAIN INTERACTION FLOW ---
 
-    // Step 1: Identification
-    if (!session) {
-        try {
-            const resp = await botApi.getUserInfo(phone);
-            const user = resp.data;
+    // Step 1: Identification (if no specific step active)
+    if (!session.step) {
+        // Special case: if user says "oi", "ola", etc., or if they haven't started a session
+        // but it's not a command, we might want AI to handle it OR start the identification.
+        
+        // Let's check for "menu" or similar to force the guided flow
+        if (text.toLowerCase().includes('menu') || text.toLowerCase().includes('começar')) {
+            try {
+                const resp = await botApi.getUserInfo(phone);
+                const user = resp.data;
 
-            if (!user.groups || user.groups.length === 0) {
-                return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
+                if (!user.groups || user.groups.length === 0) {
+                    return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
+                }
+
+                let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
+                user.groups.forEach((g, i) => {
+                    msgText += `*${i + 1}.* ${g.name}\n`;
+                });
+
+                session.step = 'select_group';
+                session.userData = user;
+                return sock.sendMessage(jid, { text: msgText });
+            } catch (e) {
+                // Not found in DB, let AI handle it
             }
-
-            let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
-            user.groups.forEach((g, i) => {
-                msgText += `*${i + 1}.* ${g.name}\n`;
-            });
-
-            sessions.set(jid, { step: 'select_group', userData: user });
-            return sock.sendMessage(jid, { text: msgText });
-        } catch (e) {
-            return sock.sendMessage(jid, { text: "⚠️ Número não reconhecido. Registe-se em fambaxitique.com para começar." });
         }
     }
 
     // Step 2: Group Selection
     if (session.step === 'select_group') {
         const idx = parseInt(text) - 1;
-        const group = session.userData.groups[idx];
+        const group = session.userData?.groups?.[idx];
         
         if (group) {
             session.step = 'group_menu';
@@ -128,8 +180,8 @@ async function handleMessage(sock, msg) {
                 return sock.sendMessage(jid, { text: "Quanto deseja pedir emprestado? (Digite apenas o valor)" });
 
             case '4':
-                sessions.delete(jid);
-                return handleMessage(sock, msg); // Simplified restart
+                delete session.step;
+                return sock.sendMessage(jid, { text: "Sessão encerrada. Como posso ajudar?" });
         }
     }
 
@@ -178,11 +230,6 @@ async function handleMessage(sock, msg) {
     try {
         await sock.sendPresenceUpdate('composing', jid);
         
-        // Ensure session exists for history
-        if (!session) {
-            session = { history: [] };
-            sessions.set(jid, session);
-        }
         if (!session.history) session.history = [];
 
         const aiResponse = await getAIResponse(text, phone, session.history);

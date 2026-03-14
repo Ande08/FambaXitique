@@ -1,20 +1,38 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini';
+const configPath = path.join(__dirname, 'bot-config.json');
+
+function getBotConfig() {
+    try {
+        if (fs.existsSync(configPath)) {
+            return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+    } catch (err) {
+        console.error("❌ Error reading bot-config.json:", err.message);
+    }
+    return { 
+        botName: "FambaBot", 
+        botRules: "Você é o assistente virtual do FambaXitique. Seja educado, prestativo e fale em Português de Moçambique." 
+    };
+}
 
 async function getGroqResponse(prompt, history = []) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
+    const config = getBotConfig();
     const openai = new OpenAI({
         apiKey: apiKey,
         baseURL: "https://api.groq.com/openai/v1"
     });
 
     const messages = [
-        { role: "system", content: "Você é o assistente virtual do FambaXitique. Seja educado, prestativo e fale em Português de Moçambique. Ajude os usuários com dúvidas sobre xitique, poupança e empréstimos. Se o usuário quiser fazer um pagamento ou pedido de crédito, oriente-o a usar o menu principal." },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -31,10 +49,11 @@ async function getOpenAIResponse(prompt, history = []) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY missing");
 
+    const config = getBotConfig();
     const openai = new OpenAI({ apiKey });
 
     const messages = [
-        { role: "system", content: "Você é o assistente virtual do FambaXitique. Seja educado, prestativo e fale em Português de Moçambique." },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -51,13 +70,14 @@ async function getMistralResponse(prompt, history = []) {
     const apiKey = process.env.MISTRAL_API_KEY;
     if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
 
+    const config = getBotConfig();
     const openai = new OpenAI({
         apiKey: apiKey,
         baseURL: "https://api.mistral.ai/v1"
     });
 
     const messages = [
-        { role: "system", content: "Você é o assistente virtual do FambaXitique. Seja educado e prestativo." },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -74,10 +94,11 @@ async function getGeminiResponse(prompt, history = []) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
+    const config = getBotConfig();
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
-        systemInstruction: "Você é o assistente virtual do FambaXitique. Seja educado, prestativo e fale em Português de Moçambique. Ajude os usuários com dúvidas sobre xitique, poupança e empréstimos. Se o usuário quiser fazer um pagamento ou pedido de crédito, oriente-o a usar o menu principal."
+        systemInstruction: `Você é o ${config.botName}. ${config.botRules}`
     });
 
     const geminiHistory = history.map(m => ({
@@ -103,20 +124,16 @@ async function callProvider(provider, prompt, history) {
 async function getAIResponse(prompt, senderId, history = []) {
     const hierarchy = ['gemini', 'groq', 'mistral', 'openai'];
     
-    // 1. Try the selected provider first
     let currentProvider = AI_PROVIDER.toLowerCase();
     try {
-        console.log(`[AI] Attempting primary: ${currentProvider}...`);
         return await callProvider(currentProvider, prompt, history);
     } catch (err) {
         console.error(`❌ Primary AI Error (${currentProvider}):`, err.message);
 
-        // 2. Iterate through hierarchy for fallback
         for (const provider of hierarchy) {
-            if (provider === currentProvider) continue; // Already tried
+            if (provider === currentProvider) continue; 
 
             try {
-                // Check if we have the key for this fallback
                 const keyName = `${provider.toUpperCase()}_API_KEY`;
                 if (!process.env[keyName]) continue;
 
