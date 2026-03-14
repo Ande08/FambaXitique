@@ -16,7 +16,14 @@ git remote set-url origin https://[SEU_TOKEN]@github.com/Ande08/FambaXitique.git
 git pull origin main
 ```
 
-## 2. Requisitos Próvios
+## 2. Script de Atualização Rápida
+Criei um script chamado `update.sh` para facilitar as atualizações futuras. Para usá-lo na VPS pela primeira vez:
+```bash
+chmod +x update.sh
+./update.sh
+```
+
+## 3. Requisitos Próvios
 Instale o Node.js v18 ou superior, MySQL e o gerenciador de processos PM2.
 ```bash
 sudo apt update
