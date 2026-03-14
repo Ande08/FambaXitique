@@ -16,8 +16,8 @@ function getBotConfig() {
         console.error("❌ Error reading bot-config.json:", err.message);
     }
     return { 
-        botName: "FambaBot", 
-        botRules: "Você é o assistente virtual do FambaXitique. Seja educado, prestativo e fale em Português de Moçambique." 
+        botName: "Carla", 
+        botRules: "Você é gestora de atendimento do FambaXitique. Seja humana, proativa e persuasiva." 
     };
 }
 
@@ -32,7 +32,7 @@ async function getGroqResponse(prompt, history = [], systemExtra = "") {
     });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
+        { role: "system", content: `Você é a ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -53,7 +53,7 @@ async function getOpenAIResponse(prompt, history = [], systemExtra = "") {
     const openai = new OpenAI({ apiKey });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
+        { role: "system", content: `Você é a ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -77,7 +77,7 @@ async function getMistralResponse(prompt, history = [], systemExtra = "") {
     });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
+        { role: "system", content: `Você é a ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -98,7 +98,7 @@ async function getGeminiResponse(prompt, history = [], systemExtra = "") {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
-        systemInstruction: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}`
+        systemInstruction: `Você é a ${config.botName}. ${config.botRules} ${systemExtra}`
     });
 
     const geminiHistory = history.map(m => ({
@@ -121,9 +121,17 @@ async function callProvider(provider, prompt, history, systemExtra) {
     }
 }
 
-async function getAIResponse(prompt, senderId, history = [], isRegistered = false) {
+async function getAIResponse(prompt, senderId, history = [], isRegistered = false, plansData = null) {
     const hierarchy = ['gemini', 'groq', 'mistral', 'openai'];
-    const systemExtra = isRegistered ? "" : "\n[STATUS: O usuário atual é um VISITANTE e não está cadastrado no sistema FambaXitique. Se ele tentar acessar funções de grupo, explique que ele deve se cadastrar no site fambaxitique.com]";
+    
+    let systemExtra = "";
+    if (!isRegistered) {
+        systemExtra += "\n[STATUS: O usuário atual é um VISITANTE e não está cadastrado. Encoraje-o a cadastrar-se no fambaxitique.com]";
+    }
+    
+    if (plansData) {
+        systemExtra += `\n[PLANS: Aqui estão os planos e preços atuais do FambaXitique: ${JSON.stringify(plansData)}. Use estes valores para convencer o cliente.]`;
+    }
     
     let currentProvider = AI_PROVIDER.toLowerCase();
     try {

@@ -269,6 +269,17 @@ exports.getNotifications = async (req, res) => {
     }
 };
 
+exports.getAllPlans = async (req, res) => {
+    try {
+        const plans = await Plan.findAll({
+            order: [['monthlyPrice', 'ASC']]
+        });
+        res.json(plans);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar planos', error: error.message });
+    }
+};
+
 exports.markNotificationSent = async (req, res) => {
     try {
         const { id } = req.params;

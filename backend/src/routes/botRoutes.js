@@ -20,4 +20,7 @@ router.post('/loan-request', botAuth, botController.submitBotLoanRequest);
 router.get('/notifications', botAuth, botController.getNotifications);
 router.post('/notifications/:id/sent', botAuth, botController.markNotificationSent);
 
+// Plans
+router.get('/plans', botAuth, botController.getAllPlans);
+
 module.exports = router;

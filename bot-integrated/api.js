@@ -27,7 +27,8 @@ const botApi = {
     submitPayment: (data) => api.post('/api/bot/payment', data),
     submitLoan: (data) => api.post('/api/bot/loan-request', data),
     getNotifications: () => api.get('/api/bot/notifications'),
-    markNotificationSent: (id) => api.post(`/api/bot/notifications/${id}/sent`, { status: 'sent' })
+    markNotificationSent: (id) => api.post(`/api/bot/notifications/${id}/sent`, { status: 'sent' }),
+    getPlans: () => api.get('/api/bot/plans')
 };
 
 module.exports = botApi;

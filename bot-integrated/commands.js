@@ -122,7 +122,6 @@ async function handleMessage(sock, msg) {
             session.isRegistered = true;
             return sock.sendMessage(jid, { text: msgText });
         } catch (e) {
-            // Not registered? The identification will fail and it falls through to AI
             session.isRegistered = false;
         }
     }
@@ -221,11 +220,9 @@ async function handleMessage(sock, msg) {
     }
 
     // --- AI FALLBACK ---
-    // If no active session or command matched, let AI handle it
     try {
         await sock.sendPresenceUpdate('composing', jid);
         
-        // Quick check for registration if not known
         if (session.isRegistered === undefined) {
             try {
                 await botApi.getUserInfo(phone);
@@ -235,15 +232,25 @@ async function handleMessage(sock, msg) {
             }
         }
 
+        // Fetch Plans if the user is asking about prices/plans
+        let plansData = null;
+        const lowerText = text.toLowerCase();
+        if (lowerText.includes('preço') || lowerText.includes('valor') || lowerText.includes('plano') || lowerText.includes('pagar') || lowerText.includes('custo') || lowerText.includes('assinatura')) {
+            try {
+                const plansResp = await botApi.getPlans();
+                plansData = plansResp.data;
+            } catch (e) {
+                console.error("❌ Error fetching plans for AI:", e.message);
+            }
+        }
+
         if (!session.history) session.history = [];
 
-        const aiResponse = await getAIResponse(text, phone, session.history, session.isRegistered);
+        const aiResponse = await getAIResponse(text, phone, session.history, session.isRegistered, plansData);
         
-        // Update history
         session.history.push({ role: 'user', content: text });
         session.history.push({ role: 'assistant', content: aiResponse });
         
-        // Limit history size
         if (session.history.length > 10) session.history = session.history.slice(-10);
 
         await sock.sendMessage(jid, { text: aiResponse });
