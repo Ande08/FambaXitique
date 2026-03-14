@@ -27,7 +27,13 @@ async function handleMessage(sock, msg) {
         } catch (e) {
             return false;
         }
+    } catch (e) {
+            return false;
+        }
     };
+
+    // Admin Commands: Identify Super Admin automatically
+    const isSuper = session.isAdmin || await checkIsSuperAdmin();
 
     // Command: /comandos or /ajuda
     if (text.toLowerCase() === '/comandos' || text.toLowerCase() === '/ajuda') {
@@ -61,9 +67,6 @@ async function handleMessage(sock, msg) {
             return sock.sendMessage(jid, { text: "❌ Senha incorreta." });
         }
     }
-
-    // Admin Commands: Identify Super Admin automatically
-    const isSuper = session.isAdmin || await checkIsSuperAdmin();
 
     // Command: /botname <novo_nome> (Admin Only)
     if (text.toLowerCase().startsWith('/botname ')) {
@@ -134,6 +137,7 @@ async function handleMessage(sock, msg) {
         try {
             const resp = await botApi.getUserInfo(phone);
             const user = resp.data;
+            session.isRegistered = true;
 
             if (!user.groups || user.groups.length === 0) {
                 return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
@@ -146,7 +150,6 @@ async function handleMessage(sock, msg) {
 
             session.step = 'select_group';
             session.userData = user;
-            session.isRegistered = true;
             return sock.sendMessage(jid, { text: msgText });
         } catch (e) {
             session.isRegistered = false;
