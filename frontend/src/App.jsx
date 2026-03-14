@@ -3,17 +3,20 @@ import DashboardAdmin from './pages/DashboardAdmin';
 import DashboardMembro from './pages/DashboardMembro';
 import DashboardSuperAdmin from './pages/DashboardSuperAdmin';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('membro'); // 'membro', 'admin', 'super'
+  const [page, setPage] = useState('landing'); // 'landing', 'login', 'app'
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
       setUser(parsedUser);
+      setPage('app');
       // If Super Admin, default to super view
       if (parsedUser.role === 'SUPER_ADMIN') setView('super');
     }
@@ -22,6 +25,7 @@ function App() {
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+    setPage('app');
     if (userData.role === 'SUPER_ADMIN') setView('super');
     else setView('membro');
   };
@@ -30,6 +34,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setPage('landing');
   };
 
   if (loading) {
@@ -42,7 +47,7 @@ function App() {
 
   return (
     <div className="App">
-      {user ? (
+      {page === 'app' && user ? (
         <>
           {view === 'admin' ? (
             <DashboardAdmin onLogout={handleLogout} />
@@ -78,8 +83,10 @@ function App() {
              </div>
           </div>
         </>
-      ) : (
+      ) : page === 'login' ? (
         <Login onLoginSuccess={handleLoginSuccess} />
+      ) : (
+        <LandingPage onStart={() => setPage('login')} />
       )}
     </div>
   );
