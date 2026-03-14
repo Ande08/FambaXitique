@@ -7,16 +7,17 @@ const sessions = new Map(); // sender -> { step, userData, groupId, groupName, h
 const configPath = path.join(__dirname, 'bot-config.json');
 
 async function handleMessage(sock, msg) {
-    const jid = msg.key.remoteJid;
-    const phone = jid.split('@')[0];
+    const remoteJid = msg.key.remoteJid;
+    const senderJid = msg.key.participant || remoteJid;
+    const phone = senderJid.split('@')[0].split(':')[0]; // Extracts only the digits (prevents :1 or @s.whatsapp)
     const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
     
     if (!text) return;
 
-    let session = sessions.get(jid);
+    let session = sessions.get(senderJid);
     if (!session) {
         session = { history: [], isAdmin: false };
-        sessions.set(jid, session);
+        sessions.set(senderJid, session);
     }
 
     // Helper to check if user is Super Admin via DB
@@ -46,12 +47,12 @@ async function handleMessage(sock, msg) {
             helpMsg += `👉 */git*: Atualiza o sistema (git pull).\n`;
         }
         
-        return sock.sendMessage(jid, { text: helpMsg });
+        return sock.sendMessage(remoteJid, { text: helpMsg });
     }
 
     // Command: /id
     if (text.toLowerCase() === '/id') {
-        return sock.sendMessage(jid, { text: `👤 *Seu ID:* ${phone}\n📱 *Número:* ${phone}` });
+        return sock.sendMessage(remoteJid, { text: `👤 *Seu ID:* ${phone}\n📱 *Número:* ${phone}` });
     }
 
     // Command: /login <password> (Optional fallback)
@@ -59,34 +60,34 @@ async function handleMessage(sock, msg) {
         const password = text.split(' ')[1];
         if (password === process.env.ADMIN_PASSWORD) {
             session.isAdmin = true;
-            return sock.sendMessage(jid, { text: "🔓 *Login de Administrador realizado com sucesso!* Agora você pode usar comandos de gestão." });
+            return sock.sendMessage(remoteJid, { text: "🔓 *Login de Administrador realizado com sucesso!* Agora você pode usar comandos de gestão." });
         } else {
-            return sock.sendMessage(jid, { text: "❌ Senha incorreta." });
+            return sock.sendMessage(remoteJid, { text: "❌ Senha incorreta." });
         }
     }
 
     // Command: /botname <novo_nome> (Admin Only)
     if (text.toLowerCase().startsWith('/botname ')) {
-        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores." });
+        if (!isSuper) return sock.sendMessage(remoteJid, { text: "⛔ Comando restrito a Administradores." });
         
         const newName = text.substring(9).trim();
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         config.botName = newName;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
         
-        return sock.sendMessage(jid, { text: `✅ Nome do bot alterado para: *${newName}*` });
+        return sock.sendMessage(remoteJid, { text: `✅ Nome do bot alterado para: *${newName}*` });
     }
 
     // Command: /botrules <novas_regras> (Admin Only)
     if (text.toLowerCase().startsWith('/botrules ')) {
-        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores." });
+        if (!isSuper) return sock.sendMessage(remoteJid, { text: "⛔ Comando restrito a Administradores." });
         
         const newRules = text.substring(10).trim();
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         config.botRules = newRules;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
         
-        return sock.sendMessage(jid, { text: "✅ Regras de personalidade do bot atualizadas!" });
+        return sock.sendMessage(remoteJid, { text: "✅ Regras de personalidade do bot atualizadas!" });
     }
 
     // Command: /plano
@@ -102,27 +103,27 @@ async function handleMessage(sock, msg) {
             pmsg += `- *Válido até:* ${date}\n`;
             pmsg += `- *Status Bot:* ${sub.botEnabled ? "✅ Ativo" : "❌ Inativo"}`;
             
-            return sock.sendMessage(jid, { text: pmsg });
+            return sock.sendMessage(remoteJid, { text: pmsg });
         } catch (e) {
-            return sock.sendMessage(jid, { text: "⚠️ Erro ao consultar plano. Verifique se seu número está registado." });
+            return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao consultar plano. Verifique se seu número está registado." });
         }
     }
 
     // Command: /git (Admin only - Update system)
     if (text.toLowerCase() === '/git') {
-        if (!isSuper) return sock.sendMessage(jid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
+        if (!isSuper) return sock.sendMessage(remoteJid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
 
-        await sock.sendMessage(jid, { text: "⚙️ Iniciando atualização via `update.sh`... Isso pode demorar alguns segundos." });
+        await sock.sendMessage(remoteJid, { text: "⚙️ Iniciando atualização via `update.sh`... Isso pode demorar alguns segundos." });
 
         const { exec } = require('child_process');
         const updatePath = path.join(__dirname, '..', 'update.sh');
 
         exec(`sh "${updatePath}"`, (error, stdout, stderr) => {
             if (error) {
-                return sock.sendMessage(jid, { text: `❌ Erro na atualização:\n${error.message}` });
+                return sock.sendMessage(remoteJid, { text: `❌ Erro na atualização:\n${error.message}` });
             }
             const output = stdout.substring(stdout.length - 500); 
-            sock.sendMessage(jid, { text: `✅ Atualização Concluída!\n\n*Resumo das últimas linhas:*\n\`\`\`${output}\`\`\`` });
+            sock.sendMessage(remoteJid, { text: `✅ Atualização Concluída!\n\n*Resumo das últimas linhas:*\n\`\`\`${output}\`\`\`` });
         });
         return;
     }
@@ -137,7 +138,7 @@ async function handleMessage(sock, msg) {
             session.isRegistered = true;
 
             if (!user.groups || user.groups.length === 0) {
-                return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
+                return sock.sendMessage(remoteJid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
             }
 
             let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
@@ -147,7 +148,7 @@ async function handleMessage(sock, msg) {
 
             session.step = 'select_group';
             session.userData = user;
-            return sock.sendMessage(jid, { text: msgText });
+            return sock.sendMessage(remoteJid, { text: msgText });
         } catch (e) {
             session.isRegistered = false;
         }
@@ -169,7 +170,7 @@ async function handleMessage(sock, msg) {
             menu += `3️⃣ Pedir Empréstimo\n`;
             menu += `4️⃣ Voltar ao início`;
 
-            return sock.sendMessage(jid, { text: menu });
+            return sock.sendMessage(remoteJid, { text: menu });
         }
     }
 
@@ -190,19 +191,19 @@ async function handleMessage(sock, msg) {
                 } else {
                     sMsg += `\n✅ Sem dívidas ativas neste grupo.`;
                 }
-                return sock.sendMessage(jid, { text: sMsg });
+                return sock.sendMessage(remoteJid, { text: sMsg });
 
             case '2':
                 session.step = 'await_payment';
-                return sock.sendMessage(jid, { text: "Por favor, envie o ID da transação (ex: DBS...) e o valor pago." });
+                return sock.sendMessage(remoteJid, { text: "Por favor, envie o ID da transação (ex: DBS...) e o valor pago." });
 
             case '3':
                 session.step = 'await_loan';
-                return sock.sendMessage(jid, { text: "Quanto deseja pedir emprestado? (Digite apenas o valor)" });
+                return sock.sendMessage(remoteJid, { text: "Quanto deseja pedir emprestado? (Digite apenas o valor)" });
 
             case '4':
                 delete session.step;
-                return sock.sendMessage(jid, { text: "Sessão encerrada. Como posso ajudar?" });
+                return sock.sendMessage(remoteJid, { text: "Sessão encerrada. Como posso ajudar?" });
         }
     }
 
@@ -219,9 +220,9 @@ async function handleMessage(sock, msg) {
                 amount,
                 groupId: session.groupId
             });
-            sock.sendMessage(jid, { text: "✅ Pagamento submetido! Aguarde a confirmação do administrador." });
+            sock.sendMessage(remoteJid, { text: "✅ Pagamento submetido! Aguarde a confirmação do administrador." });
         } catch (err) {
-            sock.sendMessage(jid, { text: `❌ Erro: ${err.response?.data?.message || err.message}` });
+            sock.sendMessage(remoteJid, { text: `❌ Erro: ${err.response?.data?.message || err.message}` });
         }
         session.step = 'group_menu';
         return;
@@ -229,7 +230,7 @@ async function handleMessage(sock, msg) {
 
     if (session.step === 'await_loan') {
         const amount = parseInt(text);
-        if (isNaN(amount)) return sock.sendMessage(jid, { text: "⚠️ Valor inválido. Digite apenas números." });
+        if (isNaN(amount)) return sock.sendMessage(remoteJid, { text: "⚠️ Valor inválido. Digite apenas números." });
 
         try {
             await botApi.submitLoan({
@@ -238,9 +239,9 @@ async function handleMessage(sock, msg) {
                 groupId: session.groupId,
                 notes: "Solicitado via Bot Integrado"
             });
-            sock.sendMessage(jid, { text: "✅ Pedido de empréstimo enviado com sucesso!" });
+            sock.sendMessage(remoteJid, { text: "✅ Pedido de empréstimo enviado com sucesso!" });
         } catch (err) {
-            sock.sendMessage(jid, { text: `❌ Erro: ${err.response?.data?.message || err.message}` });
+            sock.sendMessage(remoteJid, { text: `❌ Erro: ${err.response?.data?.message || err.message}` });
         }
         session.step = 'group_menu';
         return;
@@ -248,7 +249,7 @@ async function handleMessage(sock, msg) {
 
     // --- AI FALLBACK ---
     try {
-        await sock.sendPresenceUpdate('composing', jid);
+        await sock.sendPresenceUpdate('composing', remoteJid);
         
         if (session.isRegistered === undefined) {
             try {
@@ -280,8 +281,8 @@ async function handleMessage(sock, msg) {
         
         if (session.history.length > 10) session.history = session.history.slice(-10);
 
-        await sock.sendMessage(jid, { text: aiResponse });
-        await sock.sendPresenceUpdate('paused', jid);
+        await sock.sendMessage(remoteJid, { text: aiResponse });
+        await sock.sendPresenceUpdate('paused', remoteJid);
     } catch (aiErr) {
         console.error('💥 AI Error in handler:', aiErr.message);
     }
