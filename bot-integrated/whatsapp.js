@@ -17,7 +17,6 @@ async function connectToWhatsApp(onMessage, onOpen) {
     const sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: true,
         auth: state,
         browser: ['FambaXitique Bot', 'Chrome', '1.0.0']
     });
@@ -27,6 +26,7 @@ async function connectToWhatsApp(onMessage, onOpen) {
         
         if (qr) {
             console.log('💠 QR Code gerado. Escaneie para conectar:');
+            qrcode.generate(qr, { small: true });
         }
 
         if (connection === 'close') {
