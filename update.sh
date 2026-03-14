@@ -23,5 +23,12 @@ npm install
 pm2 restart fambaxitique-ui || pm2 start "npm run dev -- --host" --name fambaxitique-ui
 cd ..
 
+# 4. Atualizar Bot Integrado
+echo "🤖 Atualizando Bot Integrado..."
+cd bot-integrated
+npm install
+pm2 restart fambaxitique-bot || pm2 start index.js --name fambaxitique-bot
+cd ..
+
 echo "✅ Sistema atualizado e reiniciado com sucesso!"
 pm2 status
