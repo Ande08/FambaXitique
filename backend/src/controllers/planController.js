@@ -1,4 +1,4 @@
-const { Plan } = require('../models');
+const { Plan, Subscription } = require('../models');
 
 exports.getPlans = async (req, res) => {
   try {
