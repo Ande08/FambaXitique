@@ -11,6 +11,10 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null); 
   const [planEditing, setPlanEditing] = useState(null); // Plan ID being edited
+  const [pendingUpgrades, setPendingUpgrades] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [showMethodModal, setShowMethodModal] = useState(false);
+  const [methodFormData, setMethodFormData] = useState({ type: '', accountName: '', accountNumber: '' });
   const [planForm, setPlanForm] = useState({ monthlyPrice: 0, groupLimit: 1, botEnabled: false, description: '' });
 
   useEffect(() => {
@@ -20,16 +24,20 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pendingRes, allRes, statsRes, plansRes] = await Promise.all([
+      const [pendingRes, allRes, statsRes, plansRes, upgradesRes, methodsRes] = await Promise.all([
         api.get('/groups/pending-approval'),
         api.get('/groups/admin/all'),
         api.get('/groups/admin/stats'),
-        api.get('/plans')
+        api.get('/plans'),
+        api.get('/plans/pending-upgrades'),
+        api.get('/plans/payment-methods')
       ]);
       setPendingGroups(pendingRes.data);
       setAllGroups(allRes.data);
       setStats(statsRes.data);
       setPlans(plansRes.data);
+      setPendingUpgrades(upgradesRes.data);
+      setPaymentMethods(methodsRes.data);
     } catch (err) {
       console.error('Erro ao buscar dados do Admin:', err);
     } finally {
@@ -73,6 +81,31 @@ const DashboardSuperAdmin = ({ onLogout }) => {
     } catch (err) {
       setActionLoading(null);
       alert('Erro ao processar ação.');
+    }
+  };
+
+  const handleApproveUpgrade = async (id) => {
+    try {
+      setActionLoading(id);
+      await api.post(`/plans/approve-upgrade/${id}`);
+      alert('Upgrade aprovado e mensagem enviada!');
+      fetchData();
+    } catch (err) {
+      alert('Erro ao aprovar upgrade.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCreateMethod = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/plans/payment-methods', methodFormData);
+      setShowMethodModal(false);
+      setMethodFormData({ type: '', accountName: '', accountNumber: '' });
+      fetchData();
+    } catch (err) {
+      alert('Erro ao criar método de pagamento.');
     }
   };
 
@@ -126,10 +159,16 @@ const DashboardSuperAdmin = ({ onLogout }) => {
               <Nav.Link eventKey="pending" className="rounded-pill px-4">Pendentes ({pendingGroups.length})</Nav.Link>
             </Nav.Item>
             <Nav.Item>
+              <Nav.Link eventKey="upgrades" className="rounded-pill px-4 ms-2">Upgrades ({pendingUpgrades.length})</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
               <Nav.Link eventKey="all" className="rounded-pill px-4 ms-2">Todos os Grupos</Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link eventKey="plans" className="rounded-pill px-4 ms-2">Planos & Preços</Nav.Link>
+              <Nav.Link eventKey="plans" className="rounded-pill px-4 ms-2">Planos</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="methods" className="rounded-pill px-4 ms-2">Contas</Nav.Link>
             </Nav.Item>
           </Nav>
         </div>
@@ -215,6 +254,78 @@ const DashboardSuperAdmin = ({ onLogout }) => {
               </Col>
             ))}
           </Row>
+        ) : activeTab === 'upgrades' ? (
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+            <Card.Body className="p-0">
+               <Table responsive hover className="mb-0 align-middle">
+                <thead className="bg-light">
+                  <tr>
+                    <th className="px-4 py-3 border-0">Usuário</th>
+                    <th className="py-3 border-0">Plano Destino</th>
+                    <th className="py-3 border-0">Comprovativo</th>
+                    <th className="py-3 text-end px-4 border-0">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingUpgrades.length === 0 ? (
+                    <tr><td colSpan="4" className="text-center py-5">Nenhum pedido pendente</td></tr>
+                  ) : (
+                    pendingUpgrades.map(up => (
+                      <tr key={up.id}>
+                        <td className="px-4 py-3">
+                          <span className="fw-bold">{up.User?.firstName} {up.User?.lastName}</span>
+                          <br/><small>{up.User?.phone}</small>
+                        </td>
+                        <td className="py-3">
+                           <Badge bg="primary">{up.Plan?.name}</Badge>
+                           <br/><small className="text-muted">{up.amount} MT</small>
+                        </td>
+                        <td className="py-3">
+                          {up.proofPath ? (
+                            <a href={`${api.defaults.baseURL.replace('/api', '')}${up.proofPath}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-link text-primary p-0">
+                              Ver Imagem
+                            </a>
+                          ) : 'S/ Ref'}
+                        </td>
+                        <td className="py-3 text-end px-4">
+                           <Button 
+                            variant="success" 
+                            size="sm" 
+                            className="fw-bold rounded-pill px-3"
+                            onClick={() => handleApproveUpgrade(up.id)}
+                            disabled={actionLoading === up.id}
+                           >
+                            {actionLoading === up.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                           </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+               </Table>
+            </Card.Body>
+          </Card>
+        ) : activeTab === 'methods' ? (
+          <div>
+            <div className="d-flex justify-content-between mb-4">
+              <h4 className="fw-bold">Contas para Recebimento</h4>
+              <Button variant="primary" size="sm" onClick={() => setShowMethodModal(true)}>Adicionar Conta</Button>
+            </div>
+             <Row className="g-3">
+               {paymentMethods.map(m => (
+                 <Col md={4} key={m.id}>
+                   <Card className="border-0 shadow-sm rounded-4">
+                     <Card.Body className="p-4">
+                        <h5 className="fw-bold">{m.type}</h5>
+                        <p className="mb-1">{m.accountNumber}</p>
+                        <small className="text-muted d-block mb-3">{m.accountName}</small>
+                        <Badge bg={m.isActive ? 'success' : 'secondary'}>{m.isActive ? 'Ativo' : 'Inativo'}</Badge>
+                     </Card.Body>
+                   </Card>
+                 </Col>
+               ))}
+             </Row>
+          </div>
         ) : (
           <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
             <Card.Body className="p-0">
@@ -314,6 +425,45 @@ const DashboardSuperAdmin = ({ onLogout }) => {
           </Card>
         )}
       </Container>
+
+      {/* Modal Add Payment Method */}
+      <Modal show={showMethodModal} onHide={() => setShowMethodModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">Adicionar Forma de Pagamento</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <Form onSubmit={handleCreateMethod}>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Tipo (M-Pesa, E-Mola, Banco...)</Form.Label>
+              <Form.Control 
+                type="text" 
+                required 
+                value={methodFormData.type} 
+                onChange={e => setMethodFormData({...methodFormData, type: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Número / Conta</Form.Label>
+              <Form.Control 
+                type="text" 
+                required 
+                value={methodFormData.accountNumber} 
+                onChange={e => setMethodFormData({...methodFormData, accountNumber: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-4">
+              <Form.Label className="small fw-bold">Titular da Conta</Form.Label>
+              <Form.Control 
+                type="text" 
+                required 
+                value={methodFormData.accountName} 
+                onChange={e => setMethodFormData({...methodFormData, accountName: e.target.value})}
+              />
+            </Form.Group>
+            <Button variant="primary" type="submit" className="w-100 fw-bold py-2">Guardar Conta</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

@@ -6,7 +6,8 @@ import ModalSubmeterPagamento from '../components/ModalSubmeterPagamento';
 import ModalDetalhesGrupo from '../components/ModalDetalhesGrupo';
 import ModalListarFaturas from '../components/ModalListarFaturas';
 import ModalRelatorioGrupo from '../components/ModalRelatorioGrupo';
-import { Container, Row, Col, Card, Button, Badge, Form, Modal, Spinner } from 'react-bootstrap';
+import ModalUpgradePlano from '../components/ModalUpgradePlano';
+import { Container, Row, Col, Card, Button, Badge, Form, Modal, Spinner, Stack } from 'react-bootstrap';
 
 const DashboardMembro = ({ onLogout }) => {
   const [groups, setGroups] = useState([]);
@@ -17,7 +18,9 @@ const DashboardMembro = ({ onLogout }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showInvoicesModal, setShowInvoicesModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showVotingModal, setShowVotingModal] = useState(false);
+  const [subscription, setSubscription] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedLoan, setSelectedLoan] = useState(null);
@@ -32,7 +35,15 @@ const DashboardMembro = ({ onLogout }) => {
   useEffect(() => {
     fetchGroups();
     fetchLoans();
+    fetchSubscription();
   }, []);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await api.get('/plans/my-subscription');
+      setSubscription(res.data);
+    } catch (err) {}
+  };
 
   const fetchLoans = async () => {
     try {
@@ -137,7 +148,25 @@ const DashboardMembro = ({ onLogout }) => {
       <Container className="py-4">
         <Row className="mb-4 align-items-center">
           <Col>
-            <h1 className="h3 fw-bold text-dark mb-1">Meus Grupos</h1>
+            <div className="d-flex align-items-center gap-3">
+              <h1 className="h3 fw-bold text-dark mb-1">Meus Grupos</h1>
+              {subscription ? (
+                <Badge bg="success" className="rounded-pill px-3 py-2">
+                  Plano: {subscription.Plan?.name} 
+                  {subscription.endDate && ` (Até ${new Date(subscription.endDate).toLocaleDateString()})`}
+                </Badge>
+              ) : (
+                <Badge bg="secondary" className="rounded-pill px-3 py-2">Plano: Grátis</Badge>
+              )}
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="text-primary fw-bold p-0 text-decoration-none"
+                onClick={() => setShowUpgradeModal(true)}
+              >
+                Fazer Upgrade
+              </Button>
+            </div>
             <p className="text-muted small">Gerencie suas participações no xitique.</p>
           </Col>
           <Col xs="auto">
@@ -497,6 +526,12 @@ const DashboardMembro = ({ onLogout }) => {
         show={showReportModal}
         onHide={() => setShowReportModal(false)}
         group={selectedGroup}
+      />
+
+      <ModalUpgradePlano
+        show={showUpgradeModal}
+        onHide={() => setShowUpgradeModal(false)}
+        onSuccess={fetchSubscription}
       />
 
       {/* Voting Modal */}

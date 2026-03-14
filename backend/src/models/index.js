@@ -9,6 +9,8 @@ const LoanVote = require('./LoanVote');
 const BotNotification = require('./BotNotification');
 const Plan = require('./Plan');
 const Subscription = require('./Subscription');
+const AdminPaymentMethod = require('./AdminPaymentMethod');
+const SubscriptionPayment = require('./SubscriptionPayment');
 
 // Relationships
 User.belongsToMany(Group, { through: Membership, as: 'Groups' });
@@ -71,6 +73,13 @@ Subscription.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 Plan.hasMany(Subscription, { as: 'Subscriptions', foreignKey: 'planId' });
 Subscription.belongsTo(Plan, { as: 'Plan', foreignKey: 'planId' });
 
+// Subscription Payment associations
+User.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'userId' });
+SubscriptionPayment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
+
+Plan.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'planId' });
+SubscriptionPayment.belongsTo(Plan, { as: 'Plan', foreignKey: 'planId' });
+
 module.exports = {
   User,
   Group,
@@ -82,5 +91,7 @@ module.exports = {
   LoanVote,
   BotNotification,
   Plan,
-  Subscription
+  Subscription,
+  AdminPaymentMethod,
+  SubscriptionPayment
 };
