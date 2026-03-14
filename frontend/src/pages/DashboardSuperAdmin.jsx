@@ -172,261 +172,271 @@ const DashboardSuperAdmin = ({ onLogout }) => {
             </Nav.Item>
           </Nav>
         </div>
-        
-        {loading ? (
+          {loading ? (
           <div className="text-center py-5"><Spinner animation="border" /></div>
-        ) : activeTab === 'plans' ? (
-          <Row className="g-4">
-            {plans.map(plan => (
-              <Col md={4} key={plan.id}>
-                <Card className={`border-0 shadow-sm rounded-4 h-100 ${planEditing === plan.id ? 'border-primary border border-2' : ''}`}>
-                  <Card.Body className="p-4">
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                      <h4 className="fw-black mb-0">{plan.name}</h4>
-                      {plan.name === 'Premium' && <Badge bg="danger">POPULAR</Badge>}
-                    </div>
-                    {planEditing === plan.id ? (
-                      <div className="mt-3">
-                        <div className="mb-3">
-                          <label className="small text-muted mb-1">Preço Mensal (MT)</label>
-                          <input 
-                            type="number" 
-                            className="form-control form-control-sm" 
-                            value={planForm.monthlyPrice}
-                            onChange={e => setPlanForm({...planForm, monthlyPrice: e.target.value})}
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="small text-muted mb-1">Limite de Grupos (-1 = ilimitado)</label>
-                          <input 
-                            type="number" 
-                            className="form-control form-control-sm" 
-                            value={planForm.groupLimit}
-                            onChange={e => setPlanForm({...planForm, groupLimit: e.target.value})}
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <div className="form-check form-switch">
-                            <input 
-                              className="form-check-input" 
-                              type="checkbox" 
-                              checked={planForm.botEnabled}
-                              onChange={e => setPlanForm({...planForm, botEnabled: e.target.checked})}
-                            />
-                            <label className="form-check-label small">Incluir Bot de WhatsApp</label>
-                          </div>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <Button 
-                            variant="primary" 
-                            size="sm" 
-                            className="w-100 fw-bold"
-                            onClick={handleUpdatePlan}
-                            disabled={actionLoading === plan.id}
-                          >
-                            {actionLoading === plan.id ? <Spinner animation="border" size="sm" /> : 'Guardar'}
-                          </Button>
-                          <Button variant="light" size="sm" className="w-100" onClick={() => setPlanEditing(null)}>Cancelar</Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h2 className="fw-black text-primary my-3">{Number(plan.monthlyPrice).toLocaleString()} <small className="fs-6 text-muted">MT / mês</small></h2>
-                        <ul className="list-unstyled mb-4">
-                          <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i> {plan.groupLimit === -1 ? 'Grupos Ilimitados' : `Até ${plan.groupLimit} Grupos`}</li>
-                          <li className="mb-2">
-                            <i className={`bi ${plan.botEnabled ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-muted'} me-2`}></i> 
-                            Notificações Bot WhatsApp
-                          </li>
-                          <li className="text-muted small italic">{plan.description}</li>
-                        </ul>
-                        <Button 
-                          variant="outline-primary" 
-                          className="w-100 rounded-pill fw-bold"
-                          onClick={() => startEditPlan(plan)}
-                        >
-                          Editar Pacote
-                        </Button>
-                      </>
-                    )}
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        ) : activeTab === 'upgrades' ? (
-          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
-            <Card.Body className="p-0">
-               <Table responsive hover className="mb-0 align-middle">
-                <thead className="bg-light">
-                  <tr>
-                    <th className="px-4 py-3 border-0">Usuário</th>
-                    <th className="py-3 border-0">Plano Destino</th>
-                    <th className="py-3 border-0">Comprovativo</th>
-                    <th className="py-3 text-end px-4 border-0">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingUpgrades.length === 0 ? (
-                    <tr><td colSpan="4" className="text-center py-5">Nenhum pedido pendente</td></tr>
-                  ) : (
-                    pendingUpgrades.map(up => (
-                      <tr key={up.id}>
-                        <td className="px-4 py-3">
-                          <span className="fw-bold">{up.User?.firstName} {up.User?.lastName}</span>
-                          <br/><small>{up.User?.phone}</small>
-                        </td>
-                        <td className="py-3">
-                           <Badge bg="primary">{up.Plan?.name}</Badge>
-                           <br/><small className="text-muted">{up.amount} MT</small>
-                        </td>
-                        <td className="py-3">
-                          {up.proofPath ? (
-                            <a href={`${api.defaults.baseURL.replace('/api', '')}${up.proofPath}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-link text-primary p-0">
-                              Ver Imagem
-                            </a>
-                          ) : 'S/ Ref'}
-                        </td>
-                        <td className="py-3 text-end px-4">
-                           <Button 
-                            variant="success" 
-                            size="sm" 
-                            className="fw-bold rounded-pill px-3"
-                            onClick={() => handleApproveUpgrade(up.id)}
-                            disabled={actionLoading === up.id}
-                           >
-                            {actionLoading === up.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
-                           </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-               </Table>
-            </Card.Body>
-          </Card>
-        ) : activeTab === 'methods' ? (
-          <div>
-            <div className="d-flex justify-content-between mb-4">
-              <h4 className="fw-bold">Contas para Recebimento</h4>
-              <Button variant="primary" size="sm" onClick={() => setShowMethodModal(true)}>Adicionar Conta</Button>
-            </div>
-             <Row className="g-3">
-               {paymentMethods.map(m => (
-                 <Col md={4} key={m.id}>
-                   <Card className="border-0 shadow-sm rounded-4">
-                     <Card.Body className="p-4">
-                        <h5 className="fw-bold">{m.type}</h5>
-                        <p className="mb-1">{m.accountNumber}</p>
-                        <small className="text-muted d-block mb-3">{m.accountName}</small>
-                        <Badge bg={m.isActive ? 'success' : 'secondary'}>{m.isActive ? 'Ativo' : 'Inativo'}</Badge>
-                     </Card.Body>
-                   </Card>
-                 </Col>
-               ))}
-             </Row>
-          </div>
         ) : (
-          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
-            <Card.Body className="p-0">
-              <Table responsive hover className="mb-0 align-middle">
-                <thead className="bg-light">
-                  <tr>
-                    <th className="px-4 py-3 border-0">Nome do Grupo</th>
-                    <th className="py-3 border-0">Criador</th>
-                    <th className="py-3 border-0 text-center">Status</th>
-                    <th className="py-3 border-0">Data</th>
-                    <th className="py-3 text-end px-4 border-0">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="text-center py-5 text-muted">
-                        Nenhum grupo encontrado nesta categoria.
-                      </td>
-                    </tr>
-                  ) : (
-                    (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
-                      <tr key={group.id}>
-                        <td className="px-4 py-3">
-                          <span className="fw-bold d-block">{group.name}</span>
-                          <span className="text-muted small">{group.description}</span>
-                        </td>
-                        <td className="py-3">
-                          {group.Creator?.firstName} {group.Creator?.lastName}
-                          <br/><small className="text-muted">{group.Creator?.phone}</small>
-                        </td>
-                        <td className="py-3 text-center">
-                          <Badge bg={group.status === 'active' ? 'success' : group.status === 'blocked' ? 'danger' : group.status === 'pending' ? 'warning' : 'secondary'} className="rounded-pill px-3">
-                            {group.status === 'active' ? 'Ativo' : group.status === 'blocked' ? 'Bloqueado' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                          </Badge>
-                        </td>
-                        <td className="py-3 small">
-                          {new Date(group.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 text-end px-4">
-                          {group.status === 'pending' && (
-                            <>
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm" 
-                                className="me-2 fw-bold rounded-pill px-3"
-                                onClick={() => handleAction(group.id, 'rejected')}
-                                disabled={actionLoading === group.id}
-                              >
-                                {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
-                              </Button>
+          <>
+            {activeTab === 'plans' && (
+              <Row className="g-4">
+                {plans.map(plan => (
+                  <Col md={4} key={plan.id}>
+                    <Card className={`border-0 shadow-sm rounded-4 h-100 ${planEditing === plan.id ? 'border-primary border border-2' : ''}`}>
+                      <Card.Body className="p-4">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
+                          <h4 className="fw-black mb-0">{plan.name}</h4>
+                          {plan.name === 'Premium' && <Badge bg="danger">POPULAR</Badge>}
+                        </div>
+                        {planEditing === plan.id ? (
+                          <div className="mt-3">
+                            <div className="mb-3">
+                              <label className="small text-muted mb-1">Preço Mensal (MT)</label>
+                              <input 
+                                type="number" 
+                                className="form-control form-control-sm" 
+                                value={planForm.monthlyPrice}
+                                onChange={e => setPlanForm({...planForm, monthlyPrice: e.target.value})}
+                              />
+                            </div>
+                            <div className="mb-3">
+                              <label className="small text-muted mb-1">Limite de Grupos (-1 = ilimitado)</label>
+                              <input 
+                                type="number" 
+                                className="form-control form-control-sm" 
+                                value={planForm.groupLimit}
+                                onChange={e => setPlanForm({...planForm, groupLimit: e.target.value})}
+                              />
+                            </div>
+                            <div className="mb-3">
+                              <div className="form-check form-switch">
+                                <input 
+                                  className="form-check-input" 
+                                  type="checkbox" 
+                                  checked={planForm.botEnabled}
+                                  onChange={e => setPlanForm({...planForm, botEnabled: e.target.checked})}
+                                />
+                                <label className="form-check-label small">Incluir Bot de WhatsApp</label>
+                              </div>
+                            </div>
+                            <div className="d-flex gap-2">
                               <Button 
                                 variant="primary" 
                                 size="sm" 
-                                className="fw-bold rounded-pill px-3"
-                                onClick={() => handleAction(group.id, 'active')}
-                                disabled={actionLoading === group.id}
+                                className="w-100 fw-bold"
+                                onClick={handleUpdatePlan}
+                                disabled={actionLoading === plan.id}
                               >
-                                {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                                {actionLoading === plan.id ? <Spinner animation="border" size="sm" /> : 'Guardar'}
                               </Button>
-                            </>
-                          )}
-                          {group.status !== 'pending' && (
-                            <div className="d-flex justify-content-end gap-2">
-                              {group.status === 'active' ? (
-                                <Button 
-                                  variant="outline-warning" 
-                                  size="sm" 
-                                  className="fw-bold rounded-pill px-3 border-0"
-                                  onClick={() => handleAction(group.id, 'blocked')}
-                                  disabled={actionLoading === group.id}
-                                >
-                                  {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-slash-circle me-1"></i> Bloquear</>}
-                                </Button>
-                              ) : group.status === 'blocked' ? (
-                                <Button 
-                                  variant="outline-success" 
-                                  size="sm" 
-                                  className="fw-bold rounded-pill px-3 border-0"
-                                  onClick={() => handleAction(group.id, 'active')}
-                                  disabled={actionLoading === group.id}
-                                >
-                                  {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-check-circle me-1"></i> Reativar</>}
-                                </Button>
-                              ) : (
-                                <span className="text-muted small italic">Rejeitado</span>
-                              )}
+                              <Button variant="light" size="sm" className="w-100" onClick={() => setPlanEditing(null)}>Cancelar</Button>
                             </div>
-                          )}
-                        </td>
+                          </div>
+                        ) : (
+                          <>
+                            <h2 className="fw-black text-primary my-3">{Number(plan.monthlyPrice).toLocaleString()} <small className="fs-6 text-muted">MT / mês</small></h2>
+                            <ul className="list-unstyled mb-4">
+                              <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i> {plan.groupLimit === -1 ? 'Grupos Ilimitados' : `Até ${plan.groupLimit} Grupos`}</li>
+                              <li className="mb-2">
+                                <i className={`bi ${plan.botEnabled ? 'bi-check-circle-fill text-success' : 'bi-dash-circle text-muted'} me-2`}></i> 
+                                Notificações Bot WhatsApp
+                              </li>
+                              <li className="text-muted small italic">{plan.description}</li>
+                            </ul>
+                            <Button 
+                              variant="outline-primary" 
+                              className="w-100 rounded-pill fw-bold"
+                              onClick={() => startEditPlan(plan)}
+                            >
+                              Editar Pacote
+                            </Button>
+                          </>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )}
+
+            {activeTab === 'upgrades' && (
+              <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+                <Card.Body className="p-0">
+                  <Table responsive hover className="mb-0 align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="px-4 py-3 border-0">Usuário</th>
+                        <th className="py-3 border-0">Plano Destino</th>
+                        <th className="py-3 border-0">Comprovativo</th>
+                        <th className="py-3 text-end px-4 border-0">Ações</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {pendingUpgrades.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center py-5">Nenhum pedido pendente</td></tr>
+                      ) : (
+                        pendingUpgrades.map(up => (
+                          <tr key={up.id}>
+                            <td className="px-4 py-3">
+                              <span className="fw-bold">{up.User?.firstName} {up.User?.lastName}</span>
+                              <br/><small>{up.User?.phone}</small>
+                            </td>
+                            <td className="py-3">
+                              <Badge bg="primary">{up.Plan?.name}</Badge>
+                              <br/><small className="text-muted">{up.amount} MT</small>
+                            </td>
+                            <td className="py-3">
+                              {up.proofPath ? (
+                                <a href={`${api.defaults.baseURL.replace('/api', '')}${up.proofPath}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-link text-primary p-0">
+                                  Ver Imagem
+                                </a>
+                              ) : 'S/ Ref'}
+                            </td>
+                            <td className="py-3 text-end px-4">
+                              <Button 
+                                variant="success" 
+                                size="sm" 
+                                className="fw-bold rounded-pill px-3"
+                                onClick={() => handleApproveUpgrade(up.id)}
+                                disabled={actionLoading === up.id}
+                              >
+                                {actionLoading === up.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </Card.Body>
+              </Card>
+            )}
+
+            {activeTab === 'methods' && (
+              <div>
+                <div className="d-flex justify-content-between mb-4">
+                  <h4 className="fw-bold">Contas para Recebimento</h4>
+                  <Button variant="primary" size="sm" onClick={() => setShowMethodModal(true)}>Adicionar Conta</Button>
+                </div>
+                <Row className="g-3">
+                  {paymentMethods.map(m => (
+                    <Col md={4} key={m.id}>
+                      <Card className="border-0 shadow-sm rounded-4">
+                        <Card.Body className="p-4">
+                            <h5 className="fw-bold">{m.type}</h5>
+                            <p className="mb-1">{m.accountNumber}</p>
+                            <small className="text-muted d-block mb-3">{m.accountName}</small>
+                            <Badge bg={m.isActive ? 'success' : 'secondary'}>{m.isActive ? 'Ativo' : 'Inativo'}</Badge>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+            )}
+
+            {(activeTab === 'pending' || activeTab === 'all') && (
+              <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+                <Card.Body className="p-0">
+                  <Table responsive hover className="mb-0 align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="px-4 py-3 border-0">Nome do Grupo</th>
+                        <th className="py-3 border-0">Criador</th>
+                        <th className="py-3 border-0 text-center">Status</th>
+                        <th className="py-3 border-0">Data</th>
+                        <th className="py-3 text-end px-4 border-0">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-5 text-muted">
+                            Nenhum grupo encontrado nesta categoria.
+                          </td>
+                        </tr>
+                      ) : (
+                        (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
+                          <tr key={group.id}>
+                            <td className="px-4 py-3">
+                              <span className="fw-bold d-block">{group.name}</span>
+                              <span className="text-muted small">{group.description}</span>
+                            </td>
+                            <td className="py-3">
+                              {group.Creator?.firstName} {group.Creator?.lastName}
+                              <br/><small className="text-muted">{group.Creator?.phone}</small>
+                            </td>
+                            <td className="py-3 text-center">
+                              <Badge bg={group.status === 'active' ? 'success' : group.status === 'blocked' ? 'danger' : group.status === 'pending' ? 'warning' : 'secondary'} className="rounded-pill px-3">
+                                {group.status === 'active' ? 'Ativo' : group.status === 'blocked' ? 'Bloqueado' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                              </Badge>
+                            </td>
+                            <td className="py-3 small">
+                              {new Date(group.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 text-end px-4">
+                              {group.status === 'pending' && (
+                                <>
+                                  <Button 
+                                    variant="outline-danger" 
+                                    size="sm" 
+                                    className="me-2 fw-bold rounded-pill px-3"
+                                    onClick={() => handleAction(group.id, 'rejected')}
+                                    disabled={actionLoading === group.id}
+                                  >
+                                    {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
+                                  </Button>
+                                  <Button 
+                                    variant="primary" 
+                                    size="sm" 
+                                    className="fw-bold rounded-pill px-3"
+                                    onClick={() => handleAction(group.id, 'active')}
+                                    disabled={actionLoading === group.id}
+                                  >
+                                    {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                                  </Button>
+                                </>
+                              )}
+                              {group.status !== 'pending' && (
+                                <div className="d-flex justify-content-end gap-2">
+                                  {group.status === 'active' ? (
+                                    <Button 
+                                      variant="outline-warning" 
+                                      size="sm" 
+                                      className="fw-bold rounded-pill px-3 border-0"
+                                      onClick={() => handleAction(group.id, 'blocked')}
+                                      disabled={actionLoading === group.id}
+                                    >
+                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-slash-circle me-1"></i> Bloquear</>}
+                                    </Button>
+                                  ) : group.status === 'blocked' ? (
+                                    <Button 
+                                      variant="outline-success" 
+                                      size="sm" 
+                                      className="fw-bold rounded-pill px-3 border-0"
+                                      onClick={() => handleAction(group.id, 'active')}
+                                      disabled={actionLoading === group.id}
+                                    >
+                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-check-circle me-1"></i> Reativar</>}
+                                    </Button>
+                                  ) : (
+                                    <span className="text-muted small italic">Rejeitado</span>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </Card.Body>
+              </Card>
+            )}
+          </>
         )}
+
       </Container>
 
-      {/* Modal Add Payment Method */}
+      {/* Modal Add Payment Method */}ayment Method */}
       <Modal show={showMethodModal} onHide={() => setShowMethodModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title className="fw-bold">Adicionar Forma de Pagamento</Modal.Title>
