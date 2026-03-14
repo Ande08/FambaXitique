@@ -6,20 +6,36 @@ exports.getUserInfo = async (req, res) => {
         const { phone } = req.params;
         const user = await User.findOne({
             where: { phone },
-            include: [{
-                model: Group,
-                as: 'Groups',
-                through: { attributes: ['role'] },
-                attributes: ['id', 'name', 'balance']
-            }]
+            include: [
+                {
+                    model: Group,
+                    as: 'Groups',
+                    through: { attributes: ['role'] },
+                    attributes: ['id', 'name', 'balance']
+                },
+                {
+                    model: Subscription,
+                    as: 'Subscriptions',
+                    where: { status: 'active' },
+                    required: false,
+                    include: [{ model: Plan, as: 'Plan' }]
+                }
+            ]
         });
 
         if (!user) return res.status(404).json({ message: 'Número não registado.' });
+
+        const activeSub = user.Subscriptions?.[0];
 
         res.json({
             id: user.id,
             firstName: user.firstName,
             lastName: user.lastName,
+            subscription: activeSub ? {
+                planName: activeSub.Plan?.name,
+                endDate: activeSub.endDate,
+                botEnabled: activeSub.Plan?.botEnabled
+            } : null,
             groups: user.Groups.map(g => ({
                 id: g.id,
                 name: g.name,
@@ -35,8 +51,21 @@ exports.getUserInfo = async (req, res) => {
 exports.getStatus = async (req, res) => {
     try {
         const { phone } = req.params;
-        const user = await User.findOne({ where: { phone } });
+        const user = await User.findOne({ 
+            where: { phone },
+            include: [{
+                model: Subscription,
+                as: 'Subscriptions',
+                where: { status: 'active' },
+                required: false,
+                include: [{ model: Plan, as: 'Plan' }]
+            }]
+        });
         if (!user) return res.status(404).json({ message: 'Membro não encontrado.' });
+
+        // Basic status check is allowed even on Free, 
+        // but we can warn if bot is not enabled for their groups
+        // For now, let's keep it open but enrich data if needed
 
         const groups = await Group.findAll({
             include: [{
@@ -75,6 +104,29 @@ exports.getStatus = async (req, res) => {
 exports.submitBotPayment = async (req, res) => {
     try {
         const { phone, transactionId, amount, groupId, notes } = req.body;
+        
+        // Check if group creator has bot enabled
+        const group = await Group.findByPk(groupId, {
+            include: [{
+                model: User,
+                as: 'Creator',
+                include: [{
+                    model: Subscription,
+                    as: 'Subscriptions',
+                    where: { status: 'active' },
+                    required: false,
+                    include: [{ model: Plan, as: 'Plan' }]
+                }]
+            }]
+        });
+
+        if (!group) return res.status(404).json({ message: 'Grupo não encontrado.' });
+
+        const activeSub = group.Creator?.Subscriptions?.[0];
+        if (!activeSub || !activeSub.Plan?.botEnabled) {
+            return res.status(403).json({ message: 'O serviço de Bot não está ativo para este grupo. Contacte o administrador.' });
+        }
+
         const user = await User.findOne({ where: { phone } });
         if (!user) return res.status(404).json({ message: 'Membro não encontrado.' });
 
@@ -99,11 +151,31 @@ exports.submitBotPayment = async (req, res) => {
 exports.submitBotLoanRequest = async (req, res) => {
     try {
         const { phone, amount, groupId, notes } = req.body;
+
+        // Check if group creator has bot enabled
+        const group = await Group.findByPk(groupId, {
+            include: [{
+                model: User,
+                as: 'Creator',
+                include: [{
+                    model: Subscription,
+                    as: 'Subscriptions',
+                    where: { status: 'active' },
+                    required: false,
+                    include: [{ model: Plan, as: 'Plan' }]
+                }]
+            }]
+        });
+
+        if (!group) return res.status(404).json({ message: 'Grupo não encontrado.' });
+
+        const activeSub = group.Creator?.Subscriptions?.[0];
+        if (!activeSub || !activeSub.Plan?.botEnabled) {
+            return res.status(403).json({ message: 'O serviço de Bot não está ativo para este grupo. Contacte o administrador.' });
+        }
+
         const user = await User.findOne({ where: { phone } });
         if (!user) return res.status(404).json({ message: 'Membro não encontrado.' });
-
-        const group = await Group.findByPk(groupId);
-        if (!group) return res.status(404).json({ message: 'Grupo não encontrado.' });
 
         const loan = await Loan.create({
             amountRequested: amount,
