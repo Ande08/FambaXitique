@@ -42,6 +42,7 @@ const DashboardSuperAdmin = ({ onLogout }) => {
       console.error('Erro ao buscar dados do Admin:', err);
     } finally {
       setActionLoading(null);
+      setLoading(false);
     }
   };
 
