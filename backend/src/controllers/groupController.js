@@ -1,4 +1,4 @@
-const { Group, Membership, User, ValidationCode, Loan, LoanVote } = require('../models');
+const { Group, Membership, User, ValidationCode, Loan, LoanVote, Invoice } = require('../models');
 const crypto = require('crypto');
 
 exports.createGroup = async (req, res) => {
@@ -63,6 +63,36 @@ exports.getPendingGroups = async (req, res) => {
     res.json(groups);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching pending groups', error: error.message });
+  }
+};
+
+exports.getAdminStats = async (req, res) => {
+  try {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const totalUsers = await User.count();
+    const totalGroups = await Group.count();
+    res.json({ totalUsers, totalGroups });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching stats', error: error.message });
+  }
+};
+
+exports.getAllGroups = async (req, res) => {
+  try {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const groups = await Group.findAll({
+      include: [
+        { model: User, as: 'Creator', attributes: ['firstName', 'lastName', 'phone'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching all groups', error: error.message });
   }
 };
 

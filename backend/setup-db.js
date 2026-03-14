@@ -13,6 +13,22 @@ async function initializeDatabase() {
     await sequelize.sync({ alter: true });
     console.log('All models were synchronized successfully.');
 
+    // Seed Super Admin
+    const superAdminPhone = '870046109';
+    const existing = await User.findOne({ where: { phone: superAdminPhone } });
+    if (!existing) {
+      await User.create({
+        firstName: 'Ande',
+        lastName: 'Admin',
+        phone: superAdminPhone,
+        password: 'ande0000',
+        role: 'SUPER_ADMIN'
+      });
+      console.log('Super Admin account created successfully.');
+    } else {
+      console.log('Super Admin account already exists.');
+    }
+
     process.exit(0);
   } catch (error) {
     console.error('Unable to connect to the database:', error);

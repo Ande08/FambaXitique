@@ -4,24 +4,35 @@ import { Container, Row, Col, Card, Button, Badge, Spinner, Table, Navbar, Nav }
 
 const DashboardSuperAdmin = ({ onLogout }) => {
   const [pendingGroups, setPendingGroups] = useState([]);
+  const [allGroups, setAllGroups] = useState([]);
+  const [stats, setStats] = useState({ totalUsers: 0, totalGroups: 0 });
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'all'
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(null); // ID of group being processed
+  const [actionLoading, setActionLoading] = useState(null); 
 
   useEffect(() => {
-    fetchPendingGroups();
+    fetchData();
   }, []);
 
-  const fetchPendingGroups = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/groups/pending-approval');
-      setPendingGroups(res.data);
+      const [pendingRes, allRes, statsRes] = await Promise.all([
+        api.get('/groups/pending-approval'),
+        api.get('/groups/admin/all'),
+        api.get('/groups/admin/stats')
+      ]);
+      setPendingGroups(pendingRes.data);
+      setAllGroups(allRes.data);
+      setStats(statsRes.data);
     } catch (err) {
-      console.error('Erro ao buscar grupos pendentes:', err);
+      console.error('Erro ao buscar dados do Admin:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchPendingGroups = fetchData; // Keep compatibility if needed
 
   const handleAction = async (id, status) => {
     try {
@@ -50,31 +61,71 @@ const DashboardSuperAdmin = ({ onLogout }) => {
       </Navbar>
 
       <Container>
-        <h1 className="h3 fw-bold mb-4">Aprovação de Grupos</h1>
+        <Row className="mb-4">
+          <Col md={6}>
+            <Card className="border-0 shadow-sm rounded-4 bg-primary text-white">
+              <Card.Body className="p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="text-white-50 mb-1">Total de Usuários</h6>
+                  <h2 className="mb-0 fw-black">{stats.totalUsers}</h2>
+                </div>
+                <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                  <i className="bi bi-people-fill fs-3"></i>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6}>
+            <Card className="border-0 shadow-sm rounded-4 bg-dark text-white">
+              <Card.Body className="p-4 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="text-white-50 mb-1">Total de Grupos</h6>
+                  <h2 className="mb-0 fw-black">{stats.totalGroups}</h2>
+                </div>
+                <div className="bg-primary rounded-circle p-3">
+                  <i className="bi bi-grid-fill fs-3"></i>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1 className="h3 fw-bold mb-0">Gestão de Grupos</h1>
+          <Nav variant="pills" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
+            <Nav.Item>
+              <Nav.Link eventKey="pending" className="rounded-pill px-4">Pendentes ({pendingGroups.length})</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
+              <Nav.Link eventKey="all" className="rounded-pill px-4 ms-2">Todos os Grupos</Nav.Link>
+            </Nav.Item>
+          </Nav>
+        </div>
         
         {loading ? (
           <div className="text-center py-5"><Spinner animation="border" /></div>
         ) : (
-          <Card className="border-0 shadow-sm rounded-4">
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
             <Card.Body className="p-0">
               <Table responsive hover className="mb-0 align-middle">
                 <thead className="bg-light">
                   <tr>
-                    <th className="px-4 py-3">Nome do Grupo</th>
-                    <th className="py-3">Criador</th>
-                    <th className="py-3">Data</th>
-                    <th className="py-3 text-end px-4">Ações</th>
+                    <th className="px-4 py-3 border-0">Nome do Grupo</th>
+                    <th className="py-3 border-0">Criador</th>
+                    <th className="py-3 border-0 text-center">Status</th>
+                    <th className="py-3 border-0">Data</th>
+                    <th className="py-3 text-end px-4 border-0">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingGroups.length === 0 ? (
+                  {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-5 text-muted">
-                        Nenhum pedido de criação pendente.
+                      <td colSpan="5" className="text-center py-5 text-muted">
+                        Nenhum grupo encontrado nesta categoria.
                       </td>
                     </tr>
                   ) : (
-                    pendingGroups.map(group => (
+                    (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
                       <tr key={group.id}>
                         <td className="px-4 py-3">
                           <span className="fw-bold d-block">{group.name}</span>
@@ -84,28 +135,40 @@ const DashboardSuperAdmin = ({ onLogout }) => {
                           {group.Creator?.firstName} {group.Creator?.lastName}
                           <br/><small className="text-muted">{group.Creator?.phone}</small>
                         </td>
+                        <td className="py-3 text-center">
+                          <Badge bg={group.status === 'active' ? 'success' : group.status === 'pending' ? 'warning' : 'danger'} className="rounded-pill px-3">
+                            {group.status === 'active' ? 'Ativo' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                          </Badge>
+                        </td>
                         <td className="py-3 small">
                           {new Date(group.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-3 text-end px-4">
-                          <Button 
-                            variant="outline-danger" 
-                            size="sm" 
-                            className="me-2 fw-bold"
-                            onClick={() => handleAction(group.id, 'rejected')}
-                            disabled={actionLoading === group.id}
-                          >
-                            {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
-                          </Button>
-                          <Button 
-                            variant="primary" 
-                            size="sm" 
-                            className="fw-bold"
-                            onClick={() => handleAction(group.id, 'active')}
-                            disabled={actionLoading === group.id}
-                          >
-                            {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
-                          </Button>
+                          {group.status === 'pending' && (
+                            <>
+                              <Button 
+                                variant="outline-danger" 
+                                size="sm" 
+                                className="me-2 fw-bold rounded-pill px-3"
+                                onClick={() => handleAction(group.id, 'rejected')}
+                                disabled={actionLoading === group.id}
+                              >
+                                {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
+                              </Button>
+                              <Button 
+                                variant="primary" 
+                                size="sm" 
+                                className="fw-bold rounded-pill px-3"
+                                onClick={() => handleAction(group.id, 'active')}
+                                disabled={actionLoading === group.id}
+                              >
+                                {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                              </Button>
+                            </>
+                          )}
+                          {group.status !== 'pending' && (
+                            <span className="text-muted small italic">Processado</span>
+                          )}
                         </td>
                       </tr>
                     ))

@@ -100,6 +100,44 @@ EXIT;
 ```
 **Depois, edite o seu `backend/.env` e coloque a mesma senha!**
 
+### Erro: Unknown database 'fambaxitique'
+Isso significa que você ainda não criou o banco de dados no MySQL da VPS. Rode:
+
+```bash
+sudo mysql -u root -p
+```
+E dentro do MySQL:
+```sql
+CREATE DATABASE fambaxitique;
+EXIT;
+```
+**Depois, rode o setup das tabelas:**
+```bash
+cd ~/FambaXitique/backend
+node setup-db.js
+```
+
+cd ~/FambaXitique/backend
+node setup-db.js
+```
+
+### Erro: ERR_NAME_NOT_RESOLVED ou URL Malformada
+Se o erro mostrar algo como `http://http//...`, a sua URL no `.env` do Frontend está com erro de digitação.
+
+1.  **Edite o arquivo `.env` do Frontend na VPS:**
+    ```bash
+    cd ~/FambaXitique/frontend
+    nano .env
+    ```
+2.  **Corrija para o formato exato (sem o `:` antes da `/` e sem `http` duplicado):**
+    ```text
+    VITE_API_BASE_URL=http://144.91.121.85:5001/api
+    ```
+3.  **Reinicie o Frontend:**
+    ```bash
+    pm2 restart fambaxitique-ui
+    ```
+
 ## 8. Logs e Monitoramento
 ```bash
 pm2 status
