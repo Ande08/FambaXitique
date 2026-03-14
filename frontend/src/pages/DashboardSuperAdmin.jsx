@@ -436,7 +436,7 @@ const DashboardSuperAdmin = ({ onLogout }) => {
 
       </Container>
 
-      {/* Modal Add Payment Method */}ayment Method */}
+      {/* Modal Add Payment Method */}
       <Modal show={showMethodModal} onHide={() => setShowMethodModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title className="fw-bold">Adicionar Forma de Pagamento</Modal.Title>
