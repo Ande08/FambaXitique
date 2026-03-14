@@ -2,7 +2,21 @@
 
 Este guia ajudará você a colocar o seu sistema em funcionamento na sua VPS Linux (Ubuntu recomendada).
 
-## 1. Requisitos Próvios
+## 1. Clonar o Repositório
+Para baixar o código na VPS usando o seu Personal Access Token (PAT), use o seguinte comando (substitua `[SEU_TOKEN]` pelo seu token):
+
+```bash
+git clone https://[SEU_TOKEN]@github.com/Ande08/FambaXitique.git
+cd FambaXitique
+```
+
+Se você já clonou o repositório e precisa atualizar o token para fazer `pull`:
+```bash
+git remote set-url origin https://[SEU_TOKEN]@github.com/Ande08/FambaXitique.git
+git pull origin main
+```
+
+## 2. Requisitos Próvios
 Instale o Node.js v18 ou superior, MySQL e o gerenciador de processos PM2.
 ```bash
 sudo apt update
