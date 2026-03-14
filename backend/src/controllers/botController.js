@@ -4,8 +4,9 @@ const { Op } = require('sequelize');
 exports.getUserInfo = async (req, res) => {
     try {
         const { phone } = req.params;
+        const cleanPhone = phone.replace(/^258/, '');
         const user = await User.findOne({
-            where: { phone },
+            where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } },
             include: [
                 {
                     model: Group,
@@ -51,8 +52,9 @@ exports.getUserInfo = async (req, res) => {
 exports.getStatus = async (req, res) => {
     try {
         const { phone } = req.params;
+        const cleanPhone = phone.replace(/^258/, '');
         const user = await User.findOne({ 
-            where: { phone },
+            where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } },
             include: [{
                 model: Subscription,
                 as: 'Subscriptions',
@@ -127,7 +129,8 @@ exports.submitBotPayment = async (req, res) => {
             return res.status(403).json({ message: 'O serviço de Bot não está ativo para este grupo. Contacte o administrador.' });
         }
 
-        const user = await User.findOne({ where: { phone } });
+        const cleanPhone = phone.replace(/^258/, '');
+        const user = await User.findOne({ where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } } });
         if (!user) return res.status(404).json({ message: 'Membro não encontrado.' });
 
         const payment = await Payment.create({
@@ -174,7 +177,8 @@ exports.submitBotLoanRequest = async (req, res) => {
             return res.status(403).json({ message: 'O serviço de Bot não está ativo para este grupo. Contacte o administrador.' });
         }
 
-        const user = await User.findOne({ where: { phone } });
+        const cleanPhone = phone.replace(/^258/, '');
+        const user = await User.findOne({ where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } } });
         if (!user) return res.status(404).json({ message: 'Membro não encontrado.' });
 
         const loan = await Loan.create({
