@@ -27,9 +27,6 @@ async function handleMessage(sock, msg) {
         } catch (e) {
             return false;
         }
-    } catch (e) {
-            return false;
-        }
     };
 
     // Admin Commands: Identify Super Admin automatically
