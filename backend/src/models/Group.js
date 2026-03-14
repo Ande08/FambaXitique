@@ -23,7 +23,7 @@ const Group = sequelize.define('Group', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'active', 'rejected'),
+    type: DataTypes.ENUM('pending', 'active', 'rejected', 'blocked'),
     defaultValue: 'pending'
   },
   contributionAmount: {

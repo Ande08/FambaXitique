@@ -136,8 +136,8 @@ const DashboardSuperAdmin = ({ onLogout }) => {
                           <br/><small className="text-muted">{group.Creator?.phone}</small>
                         </td>
                         <td className="py-3 text-center">
-                          <Badge bg={group.status === 'active' ? 'success' : group.status === 'pending' ? 'warning' : 'danger'} className="rounded-pill px-3">
-                            {group.status === 'active' ? 'Ativo' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                          <Badge bg={group.status === 'active' ? 'success' : group.status === 'blocked' ? 'danger' : group.status === 'pending' ? 'warning' : 'secondary'} className="rounded-pill px-3">
+                            {group.status === 'active' ? 'Ativo' : group.status === 'blocked' ? 'Bloqueado' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
                           </Badge>
                         </td>
                         <td className="py-3 small">
@@ -167,7 +167,31 @@ const DashboardSuperAdmin = ({ onLogout }) => {
                             </>
                           )}
                           {group.status !== 'pending' && (
-                            <span className="text-muted small italic">Processado</span>
+                            <div className="d-flex justify-content-end gap-2">
+                              {group.status === 'active' ? (
+                                <Button 
+                                  variant="outline-warning" 
+                                  size="sm" 
+                                  className="fw-bold rounded-pill px-3 border-0"
+                                  onClick={() => handleAction(group.id, 'blocked')}
+                                  disabled={actionLoading === group.id}
+                                >
+                                  {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-slash-circle me-1"></i> Bloquear</>}
+                                </Button>
+                              ) : group.status === 'blocked' ? (
+                                <Button 
+                                  variant="outline-success" 
+                                  size="sm" 
+                                  className="fw-bold rounded-pill px-3 border-0"
+                                  onClick={() => handleAction(group.id, 'active')}
+                                  disabled={actionLoading === group.id}
+                                >
+                                  {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-check-circle me-1"></i> Reativar</>}
+                                </Button>
+                              ) : (
+                                <span className="text-muted small italic">Rejeitado</span>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
