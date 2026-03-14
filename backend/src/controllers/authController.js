@@ -120,7 +120,7 @@ exports.requestReset = async (req, res) => {
       status: 'pending'
     });
 
-    res.json({ message: 'Código enviado via WhatsApp com sucesso!', demoCode: resetToken });
+    res.json({ message: 'Código enviado via WhatsApp com sucesso!' });
   } catch (error) {
     res.status(500).json({ message: 'Erro ao solicitar reset', error: error.message });
   }

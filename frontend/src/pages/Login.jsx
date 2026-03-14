@@ -14,7 +14,6 @@ const Login = ({ onLoginSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [demoCode, setDemoCode] = useState(''); // To help user in demo
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -27,7 +26,6 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
     try {
       const res = await api.post('/auth/request-reset', { phone: formData.phone });
-      setDemoCode(res.data.demoCode);
       setView('reset');
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao solicitar reset.');
@@ -215,7 +213,7 @@ const Login = ({ onLoginSuccess }) => {
                 ) : (
                   <Form onSubmit={handleResetPassword}>
                     <p className="small text-light opacity-75 mb-4 text-center px-2">
-                       Introduza o código de 6 dígitos {demoCode && `(${demoCode})`} e a sua nova senha.
+                       Introduza o código de 6 dígitos enviado para o seu WhatsApp e a sua nova senha.
                     </p>
                     <Form.Group className="mb-3">
                       <Form.Label className="text-uppercase small fw-bold opacity-75 mb-1 px-1">Código de Recuperação</Form.Label>
