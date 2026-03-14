@@ -21,7 +21,7 @@ function getBotConfig() {
     };
 }
 
-async function getGroqResponse(prompt, history = []) {
+async function getGroqResponse(prompt, history = [], systemExtra = "") {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("GROQ_API_KEY missing");
 
@@ -32,7 +32,7 @@ async function getGroqResponse(prompt, history = []) {
     });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -45,7 +45,7 @@ async function getGroqResponse(prompt, history = []) {
     return response.choices[0].message.content;
 }
 
-async function getOpenAIResponse(prompt, history = []) {
+async function getOpenAIResponse(prompt, history = [], systemExtra = "") {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OPENAI_API_KEY missing");
 
@@ -53,7 +53,7 @@ async function getOpenAIResponse(prompt, history = []) {
     const openai = new OpenAI({ apiKey });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -66,7 +66,7 @@ async function getOpenAIResponse(prompt, history = []) {
     return response.choices[0].message.content;
 }
 
-async function getMistralResponse(prompt, history = []) {
+async function getMistralResponse(prompt, history = [], systemExtra = "") {
     const apiKey = process.env.MISTRAL_API_KEY;
     if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
 
@@ -77,7 +77,7 @@ async function getMistralResponse(prompt, history = []) {
     });
 
     const messages = [
-        { role: "system", content: `Você é o ${config.botName}. ${config.botRules}` },
+        { role: "system", content: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}` },
         ...history,
         { role: "user", content: prompt }
     ];
@@ -90,7 +90,7 @@ async function getMistralResponse(prompt, history = []) {
     return response.choices[0].message.content;
 }
 
-async function getGeminiResponse(prompt, history = []) {
+async function getGeminiResponse(prompt, history = [], systemExtra = "") {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
@@ -98,7 +98,7 @@ async function getGeminiResponse(prompt, history = []) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
-        systemInstruction: `Você é o ${config.botName}. ${config.botRules}`
+        systemInstruction: `Você é o ${config.botName}. ${config.botRules} ${systemExtra}`
     });
 
     const geminiHistory = history.map(m => ({
@@ -111,22 +111,23 @@ async function getGeminiResponse(prompt, history = []) {
     return result.response.text();
 }
 
-async function callProvider(provider, prompt, history) {
+async function callProvider(provider, prompt, history, systemExtra) {
     switch (provider.toLowerCase()) {
-        case 'gemini': return await getGeminiResponse(prompt, history);
-        case 'groq': return await getGroqResponse(prompt, history);
-        case 'mistral': return await getMistralResponse(prompt, history);
-        case 'openai': return await getOpenAIResponse(prompt, history);
+        case 'gemini': return await getGeminiResponse(prompt, history, systemExtra);
+        case 'groq': return await getGroqResponse(prompt, history, systemExtra);
+        case 'mistral': return await getMistralResponse(prompt, history, systemExtra);
+        case 'openai': return await getOpenAIResponse(prompt, history, systemExtra);
         default: throw new Error(`Provider ${provider} unknown`);
     }
 }
 
-async function getAIResponse(prompt, senderId, history = []) {
+async function getAIResponse(prompt, senderId, history = [], isRegistered = false) {
     const hierarchy = ['gemini', 'groq', 'mistral', 'openai'];
+    const systemExtra = isRegistered ? "" : "\n[STATUS: O usuário atual é um VISITANTE e não está cadastrado no sistema FambaXitique. Se ele tentar acessar funções de grupo, explique que ele deve se cadastrar no site fambaxitique.com]";
     
     let currentProvider = AI_PROVIDER.toLowerCase();
     try {
-        return await callProvider(currentProvider, prompt, history);
+        return await callProvider(currentProvider, prompt, history, systemExtra);
     } catch (err) {
         console.error(`❌ Primary AI Error (${currentProvider}):`, err.message);
 
@@ -138,7 +139,7 @@ async function getAIResponse(prompt, senderId, history = []) {
                 if (!process.env[keyName]) continue;
 
                 console.log(`🔄 [AI] Falling back to: ${provider}...`);
-                return await callProvider(provider, prompt, history);
+                return await callProvider(provider, prompt, history, systemExtra);
             } catch (fallbackErr) {
                 console.error(`❌ Fallback AI Error (${provider}):`, fallbackErr.message);
             }

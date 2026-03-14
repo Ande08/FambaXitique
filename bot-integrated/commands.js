@@ -19,8 +19,8 @@ async function handleMessage(sock, msg) {
         sessions.set(jid, session);
     }
 
-    // Command: !login <password>
-    if (text.toLowerCase().startsWith('!login ')) {
+    // Command: /login <password>
+    if (text.toLowerCase().startsWith('/login ')) {
         const password = text.split(' ')[1];
         if (password === process.env.ADMIN_PASSWORD) {
             session.isAdmin = true;
@@ -30,8 +30,8 @@ async function handleMessage(sock, msg) {
         }
     }
 
-    // Command: !botname <novo_nome> (Admin Only)
-    if (text.toLowerCase().startsWith('!botname ')) {
+    // Command: /botname <novo_nome> (Admin Only)
+    if (text.toLowerCase().startsWith('/botname ')) {
         if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
         
         const newName = text.substring(9).trim();
@@ -42,8 +42,8 @@ async function handleMessage(sock, msg) {
         return sock.sendMessage(jid, { text: `✅ Nome do bot alterado para: *${newName}*` });
     }
 
-    // Command: !botrules <novas_regras> (Admin Only)
-    if (text.toLowerCase().startsWith('!botrules ')) {
+    // Command: /botrules <novas_regras> (Admin Only)
+    if (text.toLowerCase().startsWith('/botrules ')) {
         if (!session.isAdmin) return sock.sendMessage(jid, { text: "⛔ Comando restrito a Administradores logados." });
         
         const newRules = text.substring(10).trim();
@@ -54,8 +54,8 @@ async function handleMessage(sock, msg) {
         return sock.sendMessage(jid, { text: "✅ Regras de personalidade do bot atualizadas!" });
     }
 
-    // Command: !plano
-    if (text.toLowerCase() === '!plano') {
+    // Command: /plano
+    if (text.toLowerCase() === '/plano') {
         try {
             const resp = await botApi.getUserInfo(phone);
             const user = resp.data;
@@ -73,11 +73,10 @@ async function handleMessage(sock, msg) {
         }
     }
 
-    // Command: !git (Admin only - Update system)
-    if (text.toLowerCase() === '!git') {
+    // Command: /git (Admin only - Update system)
+    if (text.toLowerCase() === '/git') {
         try {
             const resp = await botApi.getUserInfo(phone);
-            // Allow if either backend role is SUPER_ADMIN OR session.isAdmin is true
             if (resp.data.role !== 'SUPER_ADMIN' && !session.isAdmin) {
                 return sock.sendMessage(jid, { text: "⛔ Acesso negado. Apenas Super Admins podem atualizar o sistema." });
             }
@@ -103,32 +102,28 @@ async function handleMessage(sock, msg) {
 
     // --- MAIN INTERACTION FLOW ---
 
-    // Step 1: Identification (if no specific step active)
-    if (!session.step) {
-        // Special case: if user says "oi", "ola", etc., or if they haven't started a session
-        // but it's not a command, we might want AI to handle it OR start the identification.
-        
-        // Let's check for "menu" or similar to force the guided flow
-        if (text.toLowerCase().includes('menu') || text.toLowerCase().includes('começar')) {
-            try {
-                const resp = await botApi.getUserInfo(phone);
-                const user = resp.data;
+    // Special Trigger for Menu
+    if (text.toLowerCase().includes('/menu') || text.toLowerCase().includes('/começar') || text.toLowerCase().includes('/start')) {
+        try {
+            const resp = await botApi.getUserInfo(phone);
+            const user = resp.data;
 
-                if (!user.groups || user.groups.length === 0) {
-                    return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
-                }
-
-                let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
-                user.groups.forEach((g, i) => {
-                    msgText += `*${i + 1}.* ${g.name}\n`;
-                });
-
-                session.step = 'select_group';
-                session.userData = user;
-                return sock.sendMessage(jid, { text: msgText });
-            } catch (e) {
-                // Not found in DB, let AI handle it
+            if (!user.groups || user.groups.length === 0) {
+                return sock.sendMessage(jid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
             }
+
+            let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
+            user.groups.forEach((g, i) => {
+                msgText += `*${i + 1}.* ${g.name}\n`;
+            });
+
+            session.step = 'select_group';
+            session.userData = user;
+            session.isRegistered = true;
+            return sock.sendMessage(jid, { text: msgText });
+        } catch (e) {
+            // Not registered? The identification will fail and it falls through to AI
+            session.isRegistered = false;
         }
     }
 
@@ -230,9 +225,19 @@ async function handleMessage(sock, msg) {
     try {
         await sock.sendPresenceUpdate('composing', jid);
         
+        // Quick check for registration if not known
+        if (session.isRegistered === undefined) {
+            try {
+                await botApi.getUserInfo(phone);
+                session.isRegistered = true;
+            } catch (e) {
+                session.isRegistered = false;
+            }
+        }
+
         if (!session.history) session.history = [];
 
-        const aiResponse = await getAIResponse(text, phone, session.history);
+        const aiResponse = await getAIResponse(text, phone, session.history, session.isRegistered);
         
         // Update history
         session.history.push({ role: 'user', content: text });
