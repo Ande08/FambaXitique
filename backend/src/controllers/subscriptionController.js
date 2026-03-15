@@ -87,7 +87,17 @@ exports.approveUpgrade = async (req, res) => {
         if (!created) {
             // Extend existing subscription or update plan
             const currentEnd = new Date(subscription.endDate).getTime();
-            const newEndDate = new Date(Math.max(currentEnd, Date.now()) + 30 * 24 * 60 * 60 * 1000);
+            const isSamePlan = subscription.planId === payment.planId;
+            const oneYearFromNow = Date.now() + (365 * 24 * 60 * 60 * 1000);
+            
+            // If it's a DIFFERENT plan OR the current date is way in the future (like the 10-year Free plan)
+            // we start the 30 days from NOW.
+            let startBase = Date.now();
+            if (isSamePlan && currentEnd < oneYearFromNow) {
+                startBase = Math.max(currentEnd, Date.now());
+            }
+
+            const newEndDate = new Date(startBase + 30 * 24 * 60 * 60 * 1000);
             await subscription.update({
                 planId: payment.planId,
                 endDate: newEndDate
