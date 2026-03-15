@@ -112,7 +112,22 @@ exports.getStatus = async (req, res) => {
 
         const invoices = await Invoice.findAll({
             where: { userId: user.id, status: { [Op.in]: ['pending', 'overdue'] } },
-            include: [{ model: Group, as: 'Group', attributes: ['name'] }],
+            include: [{ 
+                model: Group, 
+                as: 'Group', 
+                attributes: ['name'],
+                include: [{
+                    model: User,
+                    as: 'Creator',
+                    include: [{
+                        model: Subscription,
+                        as: 'Subscriptions',
+                        where: { status: 'active' },
+                        required: false,
+                        include: [{ model: Plan, as: 'Plan' }]
+                    }]
+                }]
+            }],
             order: [['dueDate', 'ASC']]
         });
 
@@ -131,15 +146,19 @@ exports.getStatus = async (req, res) => {
                 groupName: l.Group?.name,
                 status: l.status
             })),
-            pendingInvoices: invoices.map(i => ({
-                id: i.id,
-                amount: i.amount,
-                dueDate: i.dueDate,
-                status: i.status,
-                groupName: i.Group?.name,
-                month: i.month,
-                year: i.year
-            }))
+            pendingInvoices: invoices.map(i => {
+                const creatorSub = i.Group?.Creator?.Subscriptions?.[0];
+                return {
+                    id: i.id,
+                    amount: i.amount,
+                    dueDate: i.dueDate,
+                    status: i.status,
+                    groupName: i.Group?.name,
+                    month: i.month,
+                    year: i.year,
+                    botEnabled: creatorSub ? creatorSub.Plan?.botEnabled : false
+                };
+            })
         });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar status', error: error.message });

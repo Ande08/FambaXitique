@@ -210,17 +210,29 @@ async function handleMessage(sock, msg) {
             case '2': // FATURAS
                 try {
                     const statusResp = await botApi.getStatus(phone);
-                    const invoices = statusResp.data.pendingInvoices || [];
-                    if (invoices.length === 0) {
-                        return sock.sendMessage(remoteJid, { text: "✅ Você não tem faturas pendentes. Parabéns pela organização!" });
+                    const allInvoices = statusResp.data.pendingInvoices || [];
+                    const eligibleInvoices = allInvoices.filter(inv => inv.botEnabled);
+                    
+                    if (eligibleInvoices.length === 0) {
+                        let msg = "✅ Você não tem faturas pendentes nos seus grupos integrados ao Bot.";
+                        if (allInvoices.length > 0) {
+                            msg += "\n\n⚠️ *Nota:* Você possui faturas em grupos que não têm o Bot Ativo. Visite o site para ver todas as faturas.";
+                        }
+                        return sock.sendMessage(remoteJid, { text: msg });
                     }
+
                     let iText = `🧾 *FATURAS PENDENTES*\n\n`;
-                    invoices.forEach((inv, i) => {
+                    eligibleInvoices.forEach((inv, i) => {
                         iText += `🔹 *${inv.groupName}*\n`;
                         iText += `   - Valor: ${inv.amount} MT\n`;
                         iText += `   - Vencimento: ${new Date(inv.dueDate).toLocaleDateString()}\n`;
                         iText += `   - Ref: ${inv.month}/${inv.year}\n\n`;
                     });
+
+                    if (eligibleInvoices.length < allInvoices.length) {
+                        iText += `⚠️ *Nota:* Mostrando apenas grupos com Bot Ativo. Existem outras faturas pendentes que você pode ver no site.\n\n`;
+                    }
+
                     iText += `_Para pagar uma fatura, selecione o grupo correspondente no menu de grupos._`;
                     return sock.sendMessage(remoteJid, { text: iText });
                 } catch (e) {
