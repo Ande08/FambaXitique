@@ -30,6 +30,27 @@ exports.getUserInfo = async (req, res) => {
 
         const activeSub = user.Subscriptions?.[0];
 
+        const groups = await Group.findAll({
+            include: [
+                {
+                    model: User,
+                    as: 'Members',
+                    where: { id: user.id }
+                },
+                {
+                    model: User,
+                    as: 'Creator',
+                    include: [{
+                        model: Subscription,
+                        as: 'Subscriptions',
+                        where: { status: 'active' },
+                        required: false,
+                        include: [{ model: Plan, as: 'Plan' }]
+                    }]
+                }
+            ]
+        });
+
         res.json({
             id: user.id,
             firstName: user.firstName,
@@ -40,12 +61,16 @@ exports.getUserInfo = async (req, res) => {
                 endDate: activeSub.endDate,
                 botEnabled: activeSub.Plan?.botEnabled
             } : null,
-            groups: user.Groups.map(g => ({
-                id: g.id,
-                name: g.name,
-                role: g.Membership.role,
-                balance: g.balance
-            }))
+            groups: groups.map(g => {
+                const creatorSub = g.Creator?.Subscriptions?.[0];
+                return {
+                    id: g.id,
+                    name: g.name,
+                    role: g.Members?.[0]?.Membership?.role,
+                    balance: g.balance,
+                    botEnabled: creatorSub ? creatorSub.Plan?.botEnabled : false
+                };
+            })
         });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao buscar usuário', error: error.message });
