@@ -29,6 +29,14 @@ exports.register = async (req, res) => {
       status: 'pending'
     });
 
+    await BotNotification.create({
+      phone: formattedPhone,
+      userId: user.id,
+      type: 'WELCOME_MESSAGE',
+      content: `🌟 *Bem-vindo ao FambaXitique!*\n\nOlá ${user.firstName}, estamos muito felizes por ter você connosco. Agora você pode gerir seus Xitiques, solicitar empréstimos e acompanhar suas poupanças de forma simples e segura.\n\nPrecisa de ajuda? Digite */ajuda* a qualquer momento. Vamos crescer juntos! 🚀`,
+      status: 'pending'
+    });
+
     // Auto-assign "Grátis" Plan
     const freePlan = await Plan.findOne({ where: { name: 'Grátis' } });
     if (freePlan) {
