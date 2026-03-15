@@ -46,6 +46,23 @@ async function handleMessage(sock, msg) {
 
     const isSuper = session.isAdmin;
 
+    // --- KEYWORD NAVIGATION (AUTO-STEP) ---
+    const lowerText = text.toLowerCase();
+    if (session.isRegistered && !session.step) {
+        if (lowerText.includes('meus grupos') || (lowerText.includes('ver') && lowerText.includes('grupo'))) {
+            text = '1'; session.step = 'dashboard';
+        } else if (lowerText.includes('minhas faturas') || lowerText.includes('ver faturas') || lowerText.includes('pendentes')) {
+            text = '2'; session.step = 'dashboard';
+        } else if (lowerText.includes('meus empréstimos') || lowerText.includes('ver empréstimo') || lowerText.includes('dívida')) {
+            text = '3'; session.step = 'dashboard';
+        } else if (lowerText.includes('minha conta') || lowerText.includes('meu plano') || lowerText.includes('ver plano')) {
+            text = '4'; session.step = 'dashboard';
+        } else if (lowerText.includes('suporte') || lowerText.includes('ajuda') || lowerText.includes('atendente')) {
+            if (lowerText.includes('suporte')) { text = '6'; session.step = 'dashboard'; }
+            else { text = '/ajuda'; }
+        }
+    }
+
     // Command: /comandos or /ajuda
     if (text.toLowerCase() === '/comandos' || text.toLowerCase() === '/ajuda') {
         console.log(`[CMD] /ajuda para ${remoteJid}`);
@@ -156,7 +173,8 @@ async function handleMessage(sock, msg) {
         dash += `2️⃣ *Minhas Faturas* (Ver pendentes)\n`;
         dash += `3️⃣ *Meus Empréstimos* (Ver status)\n`;
         dash += `4️⃣ *Minha Conta* (Plano e ID)\n`;
-        dash += `5️⃣ *Ajuda/Sair*\n\n`;
+        dash += `5️⃣ *Sair*\n`;
+        dash += `6️⃣ *Suporte Técnico* 🆘\n\n`;
         dash += `_Responda apenas com o NÚMERO da opção desejada._`;
         
         session.step = 'dashboard';
@@ -237,13 +255,38 @@ async function handleMessage(sock, msg) {
                 msg += `_Use /id para ver detalhes técnicos de JID._`;
                 return sock.sendMessage(remoteJid, { text: msg });
 
-            case '5': // AJUDA
+            case '5': // SAIR
                 delete session.step;
                 return sock.sendMessage(remoteJid, { text: "Até logo! Use */menu* ou fale comigo para voltar." });
 
+            case '6': // SUPORTE
+                session.step = 'await_support_phone';
+                return sock.sendMessage(remoteJid, { text: "🆘 *SUPORTE TÉCNICO*\n\nPor favor, digite o número de telefone (com 258) para que a nossa equipa possa entrar em contacto consigo o mais breve possível." });
+
             default:
-                return sock.sendMessage(remoteJid, { text: "⚠️ Opção inválida. Digite de 1 a 5." });
+                return sock.sendMessage(remoteJid, { text: "⚠️ Opção inválida. Digite de 1 a 6." });
         }
+    }
+
+    // SUPPORT FLOW HANDLER
+    if (session.step === 'await_support_phone') {
+        const supportPhone = text.replace(/\D/g, '');
+        if (supportPhone.length < 9) {
+            return sock.sendMessage(remoteJid, { text: "⚠️ Número inválido. Por favor, digite o número completo (ex: 25884...)." });
+        }
+
+        try {
+            await botApi.submitSupportRequest({
+                phone,
+                senderName: session.userData.firstName,
+                supportPhone
+            });
+            sock.sendMessage(remoteJid, { text: "✅ *Pedido Enviado!* O Administrator Supremo foi notificado e entrará em contacto consigo em breve no número fornecido. Obrigado pela paciência!" });
+        } catch (e) {
+            sock.sendMessage(remoteJid, { text: "❌ Erro ao processar suporte. Por favor, tente novamente mais tarde." });
+        }
+        delete session.step;
+        return;
     }
 
     // Step 2: Group Selection (Now from Dashboard Option 1)

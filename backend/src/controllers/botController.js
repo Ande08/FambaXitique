@@ -326,6 +326,28 @@ exports.getAllPlans = async (req, res) => {
         res.status(500).json({ message: 'Erro ao buscar planos', error: error.message });
     }
 };
+exports.requestSupport = async (req, res) => {
+    try {
+        const { phone, senderName, supportPhone } = req.body;
+
+        const admin = await User.findOne({ where: { role: 'SUPER_ADMIN' } });
+        if (!admin) return res.status(404).json({ message: 'Administrador não encontrado.' });
+
+        const message = `🚨 *PEDIDO DE SUPORTE*\n\n` +
+                        `O cliente *${senderName}* (${phone}) solicitou suporte técnico.\n\n` +
+                        `📞 *Contacto para retorno:* ${supportPhone}`;
+
+        await BotNotification.create({
+            phone: admin.phone,
+            message,
+            status: 'pending'
+        });
+
+        res.status(200).json({ message: 'Pedido de suporte enviado com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao processar pedido de suporte', error: error.message });
+    }
+};
 
 exports.markNotificationSent = async (req, res) => {
     try {
