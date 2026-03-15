@@ -24,25 +24,31 @@ async function handleMessage(sock, msg) {
 
     let session = sessions.get(senderJid);
     if (!session) {
-        session = { history: [], isAdmin: false };
+        session = { history: [], isAdmin: false, isRegistered: undefined };
         sessions.set(senderJid, session);
     }
 
-    // Helper to check if user is Super Admin via DB
-    const checkIsSuperAdmin = async () => {
+    // Centralized Identification at the beginning
+    if (session.isRegistered === undefined) {
         try {
+            console.log(`[IDENTIFY] Buscando dados de ${phone}...`);
             const resp = await botApi.getUserInfo(phone);
-            return resp.data.role === 'SUPER_ADMIN';
+            session.userData = resp.data;
+            session.isRegistered = true;
+            session.isAdmin = resp.data.role === 'SUPER_ADMIN';
+            console.log(`[IDENTIFY] ✅ ${resp.data.firstName} reconhecido (Role: ${resp.data.role})`);
         } catch (e) {
-            return false;
+            console.warn(`[IDENTIFY] ⚠️ ${phone} não reconhecido:`, e.response?.data?.message || e.message);
+            session.isRegistered = false;
+            session.isAdmin = false;
         }
-    };
+    }
 
-    // Admin Commands: Identify Super Admin automatically
-    const isSuper = session.isAdmin || await checkIsSuperAdmin();
+    const isSuper = session.isAdmin;
 
     // Command: /comandos or /ajuda
     if (text.toLowerCase() === '/comandos' || text.toLowerCase() === '/ajuda') {
+        console.log(`[CMD] /ajuda para ${remoteJid}`);
         let helpMsg = `🤖 *Menu de Comandos FambaXitique*\n\n`;
         helpMsg += `👉 */menu* ou */começar*: Inicia o menu interativo de grupos.\n`;
         helpMsg += `👉 */plano*: Consulta os detalhes da sua assinatura.\n`;
@@ -60,7 +66,8 @@ async function handleMessage(sock, msg) {
 
     // Command: /id
     if (text.toLowerCase() === '/id') {
-        return sock.sendMessage(remoteJid, { text: `👤 *Seu ID:* ${phone}\n📱 *Número:* ${phone}` });
+        console.log(`[CMD] /id para ${remoteJid}`);
+        return sock.sendMessage(remoteJid, { text: `👤 *Seu ID:* ${phone}\n📱 *Número:* ${phone}\n🆔 *JID:* ${senderJid}` });
     }
 
     // Command: /login <password> (Optional fallback)
@@ -140,26 +147,23 @@ async function handleMessage(sock, msg) {
 
     // Special Trigger for Menu
     if (text.toLowerCase().includes('/menu') || text.toLowerCase().includes('/começar') || text.toLowerCase().includes('/start')) {
-        try {
-            const resp = await botApi.getUserInfo(phone);
-            const user = resp.data;
-            session.isRegistered = true;
-
-            if (!user.groups || user.groups.length === 0) {
-                return sock.sendMessage(remoteJid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
-            }
-
-            let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
-            user.groups.forEach((g, i) => {
-                msgText += `*${i + 1}.* ${g.name}\n`;
-            });
-
-            session.step = 'select_group';
-            session.userData = user;
-            return sock.sendMessage(remoteJid, { text: msgText });
-        } catch (e) {
-            session.isRegistered = false;
+        console.log(`[CMD] /menu para ${remoteJid}`);
+        if (!session.isRegistered) {
+            return sock.sendMessage(remoteJid, { text: "⚠️ Você precisa estar registado no fambaxitique.com para acessar o menu de grupos." });
         }
+
+        const user = session.userData;
+        if (!user.groups || user.groups.length === 0) {
+            return sock.sendMessage(remoteJid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
+        }
+
+        let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
+        user.groups.forEach((g, i) => {
+            msgText += `*${i + 1}.* ${g.name}\n`;
+        });
+
+        session.step = 'select_group';
+        return sock.sendMessage(remoteJid, { text: msgText });
     }
 
     // Step 2: Group Selection
@@ -259,17 +263,7 @@ async function handleMessage(sock, msg) {
     try {
         await sock.sendPresenceUpdate('composing', remoteJid);
         
-        if (session.isRegistered === undefined) {
-            try {
-                console.log(`[IDENTIFY] Verificando se ${phone} está registado...`);
-                const uinfo = await botApi.getUserInfo(phone);
-                console.log(`[IDENTIFY] Usuário encontrado: ${uinfo.data.firstName} ${uinfo.data.lastName}`);
-                session.isRegistered = true;
-            } catch (e) {
-                console.warn(`[IDENTIFY] Usuário ${phone} não encontrado ou erro:`, e.response?.data?.message || e.message);
-                session.isRegistered = false;
-            }
-        }
+        console.log(`[AI] Gerando resposta para ${phone} (Registered: ${session.isRegistered})...`);
 
         // Fetch Plans if the user is asking about prices/plans
         let plansData = null;
