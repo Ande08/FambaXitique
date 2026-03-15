@@ -1,4 +1,5 @@
 const { User, BotNotification, Plan, Subscription } = require('../models');
+const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
