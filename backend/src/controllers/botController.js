@@ -5,6 +5,8 @@ exports.getUserInfo = async (req, res) => {
     try {
         const { phone } = req.params;
         const cleanPhone = phone.replace(/^258/, '');
+        console.log(`[BOT-API] Pesquisando usuário: ${phone} (Clean: ${cleanPhone})`);
+
         const user = await User.findOne({
             where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } },
             include: [

@@ -12,6 +12,8 @@ async function handleMessage(sock, msg) {
     const phone = senderJid.split('@')[0].split(':')[0]; // Extracts only the digits (prevents :1 or @s.whatsapp)
     const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
     
+    console.log(`[MSG] De: ${senderJid} (${phone}) | Texto: "${text}"`);
+    
     if (!text) return;
 
     let session = sessions.get(senderJid);
@@ -253,9 +255,12 @@ async function handleMessage(sock, msg) {
         
         if (session.isRegistered === undefined) {
             try {
-                await botApi.getUserInfo(phone);
+                console.log(`[IDENTIFY] Verificando se ${phone} está registado...`);
+                const uinfo = await botApi.getUserInfo(phone);
+                console.log(`[IDENTIFY] Usuário encontrado: ${uinfo.data.firstName} ${uinfo.data.lastName}`);
                 session.isRegistered = true;
             } catch (e) {
+                console.warn(`[IDENTIFY] Usuário ${phone} não encontrado ou erro:`, e.response?.data?.message || e.message);
                 session.isRegistered = false;
             }
         }
