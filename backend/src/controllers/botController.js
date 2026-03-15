@@ -339,7 +339,8 @@ exports.requestSupport = async (req, res) => {
 
         await BotNotification.create({
             phone: admin.phone,
-            message,
+            type: 'SUPPORT_REQUEST',
+            content: message,
             status: 'pending'
         });
 

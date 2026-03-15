@@ -16,6 +16,8 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const [showMethodModal, setShowMethodModal] = useState(false);
   const [methodFormData, setMethodFormData] = useState({ type: '', accountName: '', accountNumber: '' });
   const [planForm, setPlanForm] = useState({ monthlyPrice: 0, groupLimit: 1, botEnabled: false, description: '' });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedUpgrade, setSelectedUpgrade] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -90,9 +92,10 @@ const DashboardSuperAdmin = ({ onLogout }) => {
       setActionLoading(id);
       await api.post(`/plans/approve-upgrade/${id}`);
       alert('Upgrade aprovado e mensagem enviada!');
+      setShowUpgradeModal(false);
       fetchData();
     } catch (err) {
-      alert('Erro ao aprovar upgrade.');
+      alert('Erro ao aprovar upgrade: ' + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(null);
     }
@@ -291,15 +294,17 @@ const DashboardSuperAdmin = ({ onLogout }) => {
                                 </a>
                               ) : 'S/ Ref'}
                             </td>
-                            <td className="py-3 text-end px-4">
+                             <td className="py-3 text-end px-4">
                               <Button 
-                                variant="success" 
+                                variant="outline-primary" 
                                 size="sm" 
                                 className="fw-bold rounded-pill px-3"
-                                onClick={() => handleApproveUpgrade(up.id)}
-                                disabled={actionLoading === up.id}
+                                onClick={() => {
+                                  setSelectedUpgrade(up);
+                                  setShowUpgradeModal(true);
+                                }}
                               >
-                                {actionLoading === up.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
+                                Detalhes
                               </Button>
                             </td>
                           </tr>
@@ -436,6 +441,66 @@ const DashboardSuperAdmin = ({ onLogout }) => {
         )}
 
       </Container>
+
+      {/* Modal Upgrade Details */}
+      <Modal show={showUpgradeModal} onHide={() => setShowUpgradeModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="fw-black">Detalhes do Upgrade</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedUpgrade && (
+            <Row>
+              <Col md={6}>
+                <h6 className="text-uppercase small fw-bold text-muted mb-3">Informações do Cliente</h6>
+                <p className="mb-1"><strong>Nome:</strong> {selectedUpgrade.User?.firstName} {selectedUpgrade.User?.lastName}</p>
+                <p className="mb-1"><strong>Telefone:</strong> {selectedUpgrade.User?.phone}</p>
+                <hr className="my-3 opacity-10" />
+                <h6 className="text-uppercase small fw-bold text-muted mb-3">Plano Pretendido</h6>
+                <div className="d-flex align-items-center mb-3">
+                  <Badge bg="primary" className="p-2 px-3 fs-6 rounded-3 me-2">{selectedUpgrade.Plan?.name}</Badge>
+                  <span className="fw-bold text-primary fs-5">{selectedUpgrade.amount} MT</span>
+                </div>
+                {selectedUpgrade.transactionId && (
+                  <p className="mb-0"><strong>ID Transação:</strong> <code className="bg-light p-1 rounded px-2">{selectedUpgrade.transactionId}</code></p>
+                )}
+              </Col>
+              <Col md={6} className="text-center border-start">
+                <h6 className="text-uppercase small fw-bold text-muted mb-3">Comprovativo de Pagamento</h6>
+                {selectedUpgrade.proofPath ? (
+                  <div className="bg-light rounded-4 overflow-hidden border" style={{ maxHeight: '300px' }}>
+                    <a href={`${api.defaults.baseURL.replace('/api', '')}${selectedUpgrade.proofPath}`} target="_blank" rel="noreferrer">
+                      <img 
+                        src={`${api.defaults.baseURL.replace('/api', '')}${selectedUpgrade.proofPath}`} 
+                        alt="Comprovativo" 
+                        className="img-fluid"
+                        style={{ objectFit: 'contain', width: '100%', maxHeight: '300px' }}
+                      />
+                    </a>
+                    <div className="p-2 small text-muted">Clique na imagem para ampliar</div>
+                  </div>
+                ) : (
+                  <div className="bg-light rounded-4 p-5 text-muted border border-dashed">
+                    <i className="bi bi-file-earmark-x fs-1 d-block mb-2"></i>
+                    Nenhum ficheiro anexado
+                  </div>
+                )}
+              </Col>
+            </Row>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 p-4 pt-0">
+          <Button variant="light" className="fw-bold px-4" onClick={() => setShowUpgradeModal(false)}>Fechar</Button>
+          <Button 
+            variant="success" 
+            className="fw-bold px-4 shadow-sm" 
+            onClick={() => handleApproveUpgrade(selectedUpgrade.id)}
+            disabled={actionLoading === selectedUpgrade?.id}
+          >
+            {actionLoading === selectedUpgrade?.id ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
+            Aprovar Upgrade
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Modal Add Payment Method */}
       <Modal show={showMethodModal} onHide={() => setShowMethodModal(false)} centered>

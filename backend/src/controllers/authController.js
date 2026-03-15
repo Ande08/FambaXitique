@@ -61,7 +61,12 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Telefone e senha são obrigatórios.' });
     }
     console.log('[DEBUG] Finding user...');
-    const user = await User.findOne({ where: { phone } });
+    const cleanPhone = phone.replace(/^258/, '');
+    const user = await User.findOne({ 
+      where: { 
+        phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } 
+      } 
+    });
 
     if (!user) {
       console.log('[DEBUG] User not found');

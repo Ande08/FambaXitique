@@ -86,7 +86,8 @@ exports.approveUpgrade = async (req, res) => {
 
         if (!created) {
             // Extend existing subscription or update plan
-            const newEndDate = new Date(Math.max(subscription.endDate, Date.now()) + 30 * 24 * 60 * 60 * 1000);
+            const currentEnd = new Date(subscription.endDate).getTime();
+            const newEndDate = new Date(Math.max(currentEnd, Date.now()) + 30 * 24 * 60 * 60 * 1000);
             await subscription.update({
                 planId: payment.planId,
                 endDate: newEndDate
