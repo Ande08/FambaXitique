@@ -16,18 +16,8 @@ exports.register = async (req, res) => {
 
     const user = await User.create({ firstName, lastName, phone, password });
 
-    // Queue OTP for Registration (Simulated 6-digit code)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     // Ensure phone has country code for WhatsApp
     const formattedPhone = phone.startsWith('258') ? phone : `258${phone}`;
-
-    await BotNotification.create({
-      phone: formattedPhone,
-      userId: user.id,
-      type: 'OTP_REGISTRATION',
-      content: `Olá ${user.firstName}! Bem-vindo ao FambaXitique. Seu código de ativação é: ${otp}`,
-      status: 'pending'
-    });
 
     await BotNotification.create({
       phone: formattedPhone,
@@ -49,7 +39,7 @@ exports.register = async (req, res) => {
     }
 
     res.status(201).json({ 
-      message: 'Usuário registrado com sucesso. Verifique seu WhatsApp!', 
+      message: 'Usuário registrado com sucesso! Já pode fazer login.', 
       user: { id: user.id, firstName: user.firstName, lastName: user.lastName, phone: user.phone } 
     });
   } catch (error) {
