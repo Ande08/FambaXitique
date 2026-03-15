@@ -167,7 +167,7 @@ exports.getStatus = async (req, res) => {
 
 exports.submitBotPayment = async (req, res) => {
     try {
-        const { phone, transactionId, amount, groupId, notes } = req.body;
+        const { phone, transactionId, amount, groupId, notes, invoiceId, loanId, paymentMethod } = req.body;
         
         // Check if group creator has bot enabled
         const group = await Group.findByPk(groupId, {
@@ -200,11 +200,29 @@ exports.submitBotPayment = async (req, res) => {
             transactionId,
             groupId,
             userId: user.id,
+            invoiceId: invoiceId || null,
+            loanId: loanId || null,
+            paymentMethod: paymentMethod || 'Bot WhatsApp',
             notes: notes || 'Pagamento via Bot WhatsApp',
             status: 'pending'
         });
 
-        res.status(201).json({ message: 'Pagamento registado. Aguarde validação do administrador.', payment });
+        // Notify Group Admin
+        if (group.Creator) {
+            const adminPhone = group.Creator.phone.startsWith('258') ? group.Creator.phone : `258${group.Creator.phone}`;
+            const paymentType = loanId ? 'Empréstimo' : 'Contribuição';
+            
+            await BotNotification.create({
+                phone: adminPhone,
+                userId: group.Creator.id,
+                groupId: group.id,
+                type: 'PAYMENT_CONFIRMED', // Reuse or add a specific type if needed
+                content: `📢 *Aviso de Pagamento*\n\nO membro *${user.firstName}* submeteu um pagamento de *${paymentType}* no grupo *${group.name}*.\n\n💰 *Valor:* ${amount} MT\n🔑 *ID Transação:* ${transactionId}\n\nPor favor, aceda ao sistema para validar o comprovativo e aprovar o pagamento.`,
+                status: 'pending'
+            });
+        }
+
+        res.status(201).json({ message: 'Pagamento registado. O administrador do grupo foi notificado para validação.', payment });
     } catch (error) {
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(400).json({ message: 'Este ID de transação já foi submetido.' });

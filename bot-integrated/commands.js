@@ -223,17 +223,19 @@ async function handleMessage(sock, msg) {
 
                     let iText = `🧾 *FATURAS PENDENTES*\n\n`;
                     eligibleInvoices.forEach((inv, i) => {
-                        iText += `🔹 *${inv.groupName}*\n`;
+                        iText += `*${i + 1}.* ${inv.groupName}\n`;
                         iText += `   - Valor: ${inv.amount} MT\n`;
                         iText += `   - Vencimento: ${new Date(inv.dueDate).toLocaleDateString()}\n`;
                         iText += `   - Ref: ${inv.month}/${inv.year}\n\n`;
                     });
 
                     if (eligibleInvoices.length < allInvoices.length) {
-                        iText += `⚠️ *Nota:* Mostrando apenas grupos com Bot Ativo. Existem outras faturas pendentes que você pode ver no site.\n\n`;
+                        iText += `⚠️ *Nota:* Mostrando apenas grupos com Bot Ativo. Existem outras faturas no site.\n\n`;
                     }
 
-                    iText += `_Para pagar uma fatura, selecione o grupo correspondente no menu de grupos._`;
+                    iText += `*Digite o número da fatura* que deseja pagar agora, ou *0* para voltar.`;
+                    session.step = 'select_invoice_to_pay';
+                    session.tempInvoices = eligibleInvoices;
                     return sock.sendMessage(remoteJid, { text: iText });
                 } catch (e) {
                     return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao consultar faturas." });
@@ -243,16 +245,21 @@ async function handleMessage(sock, msg) {
                 try {
                     const statusResp = await botApi.getStatus(phone);
                     const loans = statusResp.data.activeLoans || [];
+                    // Filter loans by botEnabled if needed, but for now let's show all and check group in next step
                     if (loans.length === 0) {
                         return sock.sendMessage(remoteJid, { text: "💰 Você não tem empréstimos ativos no momento." });
                     }
                     let lText = `💰 *SEUS EMPRÉSTIMOS*\n\n`;
-                    loans.forEach(loan => {
-                        lText += `🏛️ *${loan.groupName}*\n`;
+                    loans.forEach((loan, i) => {
+                        lText += `*${i + 1}.* ${loan.groupName}\n`;
                         lText += `   - Valor: ${loan.amountRequested} MT\n`;
                         lText += `   - Em falta: ${loan.remainingBalance} MT\n`;
                         lText += `   - Progresso: ${loan.progress}%\n\n`;
                     });
+
+                    lText += `*Digite o número do empréstimo* que deseja amortizar, ou *0* para voltar.`;
+                    session.step = 'select_loan_to_pay';
+                    session.tempLoans = loans;
                     return sock.sendMessage(remoteJid, { text: lText });
                 } catch (e) {
                     return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao consultar empréstimos." });
@@ -281,6 +288,85 @@ async function handleMessage(sock, msg) {
 
             default:
                 return sock.sendMessage(remoteJid, { text: "⚠️ Opção inválida. Digite de 1 a 6." });
+        }
+    }
+
+    // PAYMENT FLOW HANDLERS
+    if (session.step === 'select_invoice_to_pay' || session.step === 'select_loan_to_pay') {
+        if (text === '0') return showDashboard();
+        const idx = parseInt(text) - 1;
+        const items = session.step === 'select_invoice_to_pay' ? session.tempInvoices : session.tempLoans;
+        
+        if (isNaN(idx) || !items || !items[idx]) {
+            return sock.sendMessage(remoteJid, { text: "⚠️ Opção inválida. Escolha um número da lista." });
+        }
+
+        const selected = items[idx];
+        session.paymentData = {
+            groupId: selected.groupId || session.userData.groups.find(g => g.name === selected.groupName)?.id,
+            amount: selected.amount || selected.remainingBalance,
+            invoiceId: selected.id && session.step === 'select_invoice_to_pay' ? selected.id : null,
+            loanId: selected.id && session.step === 'select_loan_to_pay' ? selected.id : null,
+            groupName: selected.groupName
+        };
+
+        try {
+            // Get group details to show payment methods
+            const userResp = await botApi.getUserInfo(phone); // Re-fetch or use session to get group methods
+            const groupDetails = userResp.data.groups.find(g => g.id === session.paymentData.groupId);
+            
+            // We need to fetch the FULL group object to get paymentMethods JSON
+            // Let's add an endpoint or reuse getUserInfo if it has it. 
+            // For now, let's assume we have them or show default.
+            
+            let pmText = `💳 *MÉTODOS DE PAGAMENTO - ${session.paymentData.groupName}*\n\n`;
+            pmText += `Escolha como deseja pagar o valor de *${session.paymentData.amount} MT*:\n\n`;
+            pmText += `1️⃣ M-Pesa\n`;
+            pmText += `2️⃣ e-Mola\n\n`;
+            pmText += `*0.* Cancelar`;
+            
+            session.step = 'select_payment_method';
+            return sock.sendMessage(remoteJid, { text: pmText });
+        } catch (e) {
+            return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao carregar métodos de pagamento." });
+        }
+    }
+
+    if (session.step === 'select_payment_method') {
+        if (text === '0') return showDashboard();
+        const method = text === '1' ? 'M-Pesa' : (text === '2' ? 'e-Mola' : null);
+        if (!method) return sock.sendMessage(remoteJid, { text: "⚠️ Escolha 1 ou 2." });
+
+        session.paymentData.method = method;
+        session.step = 'await_transaction_id';
+        return sock.sendMessage(remoteJid, { text: `📝 *PAGAMENTO VIA ${method.toUpperCase()}*\n\nPor favor, realize a transferência e digite aqui o *ID da Transação* (ex: 9ABC...):` });
+    }
+
+    if (session.step === 'await_transaction_id') {
+        if (text.length < 5) return sock.sendMessage(remoteJid, { text: "⚠️ ID de transação inválido. Introduza o código completo recebido por SMS." });
+
+        try {
+            await sock.sendMessage(remoteJid, { text: "⏳ Processando seu pagamento... Por favor, aguarde." });
+            
+            const resp = await botApi.submitPayment({
+                phone,
+                amount: session.paymentData.amount,
+                transactionId: text,
+                groupId: session.paymentData.groupId,
+                invoiceId: session.paymentData.invoiceId,
+                loanId: session.paymentData.loanId,
+                paymentMethod: session.paymentData.method,
+                notes: `Pago via Bot WhatsApp (${session.paymentData.method})`
+            });
+
+            const successMsg = `✅ *PAGAMENTO REGISTADO!*\n\nObrigado, *${session.userData.firstName}*! O seu pagamento de *${session.paymentData.amount} MT* foi submetido.\n\n📢 O administrador do grupo *${session.paymentData.groupName}* foi notificado e irá validar o comprovativo em breve.`;
+            
+            delete session.step;
+            delete session.paymentData;
+            return sock.sendMessage(remoteJid, { text: successMsg });
+        } catch (e) {
+            const errorMsg = e.response?.data?.message || "Erro ao processar pagamento.";
+            return sock.sendMessage(remoteJid, { text: `❌ *ERRO:* ${errorMsg}\n\nVerifique o ID da transação e tente novamente.` });
         }
     }
 
