@@ -24,6 +24,11 @@ exports.createAdminPaymentMethod = async (req, res) => {
 exports.requestUpgrade = async (req, res) => {
     try {
         const { planId, amount, paymentMethodDetails, transactionId } = req.body;
+        
+        if (!transactionId && !req.file) {
+            return res.status(400).json({ message: 'É necessário informar o ID da transação ou anexar um comprovativo.' });
+        }
+
         const proofPath = req.file ? `/uploads/subscriptions/${req.file.filename}` : null;
 
         const upgradeRequest = await SubscriptionPayment.create({

@@ -38,7 +38,9 @@ const ModalUpgradePlano = ({ show, onHide, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!proof) return setError('Por favor, anexe o comprovativo.');
+    if (!transactionId && !proof) {
+      return setError('Por favor, informe o ID da transação ou anexe o comprovativo.');
+    }
     
     setLoading(true);
     setError('');
@@ -145,7 +147,6 @@ const ModalUpgradePlano = ({ show, onHide, onSuccess }) => {
                     type="file" 
                     accept="image/*"
                     onChange={e => setProof(e.target.files[0])}
-                    required
                     className="rounded-3 py-2"
                   />
                 </Form.Group>
