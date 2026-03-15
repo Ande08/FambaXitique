@@ -9,14 +9,16 @@ const configPath = path.join(__dirname, 'bot-config.json');
 async function handleMessage(sock, msg) {
     const remoteJid = msg.key.remoteJid;
     const senderJid = msg.key.participant || remoteJid;
-    const phone = senderJid.split('@')[0].split(':')[0]; // Extracts only the digits (prevents :1 or @s.whatsapp)
+    let phone = senderJid.split('@')[0].split(':')[0]; // Extracts digits
+
+    // Fix for LID: Use senderPn (real phone) if available when ID is an LID
+    if (senderJid.endsWith('@lid') && msg.key.senderPn) {
+        phone = msg.key.senderPn.split('@')[0];
+    }
+    
     const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
     
-    console.log(`[MSG] De: ${senderJid} (${phone}) | Texto: "${text}"`);
-    if (senderJid.endsWith('@lid')) {
-        console.log(`[DEBUG-LID] Full Message Key: ${JSON.stringify(msg.key)}`);
-        console.log(`[DEBUG-LID] Push Name: ${msg.pushName}`);
-    }
+    console.log(`[MSG] De: ${senderJid} (Phone: ${phone}) | Texto: "${text}"`);
     
     if (!text) return;
 
