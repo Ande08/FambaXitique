@@ -131,8 +131,9 @@ async function handleMessage(sock, msg) {
         try {
             const resp = await botApi.getUserInfo(phone);
             const user = resp.data;
-            const sub = user.subscription || { planName: "Grátis", endDate: "N/A", botEnabled: false };
-            const date = sub.endDate !== "N/A" ? new Date(sub.endDate).toLocaleDateString() : "N/A";
+            const sub = user.subscription || { planName: "Grátis", endDate: null, botEnabled: false };
+            const isFree = sub.planName.toLowerCase().includes('grátis') || sub.planName.toLowerCase().includes('gratuito');
+            const date = isFree ? "Vitalício" : (sub.endDate ? new Date(sub.endDate).toLocaleDateString() : "N/A");
             
             let pmsg = `📋 *Sua Assinatura FambaXitique*\n`;
             pmsg += `- *Plano:* ${sub.planName}\n`;
@@ -246,11 +247,14 @@ async function handleMessage(sock, msg) {
                 }
 
             case '4': // CONTA
-                const sub = session.userData.subscription || { planName: "Grátis", endDate: "N/A", botEnabled: false };
+                const sub = session.userData.subscription || { planName: "Grátis", endDate: null, botEnabled: false };
+                const isFree = sub.planName.toLowerCase().includes('grátis') || sub.planName.toLowerCase().includes('gratuito');
+                const date = isFree ? "Vitalício" : (sub.endDate ? new Date(sub.endDate).toLocaleDateString() : "N/A");
+
                 let msg = `👤 *DETALHES DA CONTA*\n\n`;
                 msg += `📱 *Número:* ${phone}\n`;
                 msg += `🎗️ *Plano:* ${sub.planName}\n`;
-                msg += `📅 *Válido até:* ${sub.endDate !== "N/A" ? new Date(sub.endDate).toLocaleDateString() : "N/A"}\n`;
+                msg += `📅 *Válido até:* ${date}\n`;
                 msg += `🤖 *Status Bot:* ${sub.botEnabled ? "✅ Ativado" : "❌ Inativo"}\n\n`;
                 msg += `_Use /id para ver detalhes técnicos de JID._`;
                 return sock.sendMessage(remoteJid, { text: msg });
