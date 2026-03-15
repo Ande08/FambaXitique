@@ -8,6 +8,10 @@ const botAuth = (req, res, next) => {
     const token = cleanToken(req.headers.authorization);
     const expectedToken = cleanToken(process.env.BOT_API_TOKEN);
 
+    if (!expectedToken) {
+        console.error(`[CRITICAL] BOT_API_TOKEN não está definido no .env do Backend!`);
+    }
+
     if (token && token === expectedToken) {
         return next();
     }
