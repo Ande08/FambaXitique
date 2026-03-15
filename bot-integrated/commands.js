@@ -13,6 +13,10 @@ async function handleMessage(sock, msg) {
     const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
     
     console.log(`[MSG] De: ${senderJid} (${phone}) | Texto: "${text}"`);
+    if (senderJid.endsWith('@lid')) {
+        console.log(`[DEBUG-LID] Full Message Key: ${JSON.stringify(msg.key)}`);
+        console.log(`[DEBUG-LID] Push Name: ${msg.pushName}`);
+    }
     
     if (!text) return;
 
