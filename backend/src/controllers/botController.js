@@ -110,6 +110,12 @@ exports.getStatus = async (req, res) => {
             include: [{ model: Group, as: 'Group', attributes: ['name'] }]
         });
 
+        const invoices = await Invoice.findAll({
+            where: { userId: user.id, status: { [Op.in]: ['pending', 'overdue'] } },
+            include: [{ model: Group, as: 'Group', attributes: ['name'] }],
+            order: [['dueDate', 'ASC']]
+        });
+
         const totalContribution = await Payment.sum('amount', {
             where: { userId: user.id, status: 'approved', loanId: null }
         }) || 0;
@@ -124,6 +130,15 @@ exports.getStatus = async (req, res) => {
                 progress: Math.round(((parseFloat(l.totalToRepay) - parseFloat(l.remainingBalance)) / parseFloat(l.totalToRepay)) * 100) || 0,
                 groupName: l.Group?.name,
                 status: l.status
+            })),
+            pendingInvoices: invoices.map(i => ({
+                id: i.id,
+                amount: i.amount,
+                dueDate: i.dueDate,
+                status: i.status,
+                groupName: i.Group?.name,
+                month: i.month,
+                year: i.year
             }))
         });
     } catch (error) {

@@ -49,17 +49,21 @@ async function handleMessage(sock, msg) {
     // Command: /comandos or /ajuda
     if (text.toLowerCase() === '/comandos' || text.toLowerCase() === '/ajuda') {
         console.log(`[CMD] /ajuda para ${remoteJid}`);
-        let helpMsg = `🤖 *Menu de Comandos FambaXitique*\n\n`;
-        helpMsg += `👉 */menu* ou */começar*: Inicia o menu interativo de grupos.\n`;
-        helpMsg += `👉 */plano*: Consulta os detalhes da sua assinatura.\n`;
-        helpMsg += `👉 */id*: Mostra o seu ID de usuário e telefone.\n\n`;
+        let helpMsg = `✨ *CENTRAL DE AJUDA FAMBAXITIQUE* ✨\n\n`;
+        helpMsg += `Olá, *${session.userData?.firstName || 'Membro'}*! Como posso ser útil hoje?\n\n`;
+        helpMsg += `📑 *Comandos Gerais:*\n`;
+        helpMsg += `👉 */menu*: Abre o Dashboard principal.\n`;
+        helpMsg += `👉 */plano*: Consulta detalhes da sua assinatura.\n`;
+        helpMsg += `👉 */id*: Mostra o seu ID e JID para suporte.\n\n`;
         
         if (isSuper) {
-            helpMsg += `👑 *Comandos de Administrador:*\n`;
+            helpMsg += `👑 *Gestão (Admin Supremo):*\n`;
             helpMsg += `👉 */botname <nome>*: Altera o nome do bot.\n`;
             helpMsg += `👉 */botrules <regras>*: Altera a personalidade do bot.\n`;
             helpMsg += `👉 */git*: Atualiza o sistema (git pull).\n`;
         }
+        
+        helpMsg += `\n_💡 Dica: Você também pode falar comigo naturalmente para tirar dúvidas sobre o sistema!_`;
         
         return sock.sendMessage(remoteJid, { text: helpMsg });
     }
@@ -143,31 +147,109 @@ async function handleMessage(sock, msg) {
         return;
     }
 
-    // --- MAIN INTERACTION FLOW ---
+    // --- MAIN INTERACTION FLOW (DASHBOARD) ---
+
+    const showDashboard = async () => {
+        let dash = `🌟 *DASHBOARD FAMBAXITIQUE* 🌟\n\n`;
+        dash += `Olá, *${session.userData.firstName}*! O que deseja fazer hoje?\n\n`;
+        dash += `1️⃣ *Meus Grupos* (Ver saldo e pagar)\n`;
+        dash += `2️⃣ *Minhas Faturas* (Ver pendentes)\n`;
+        dash += `3️⃣ *Meus Empréstimos* (Ver status)\n`;
+        dash += `4️⃣ *Minha Conta* (Plano e ID)\n`;
+        dash += `5️⃣ *Ajuda/Sair*\n\n`;
+        dash += `_Responda apenas com o NÚMERO da opção desejada._`;
+        
+        session.step = 'dashboard';
+        return sock.sendMessage(remoteJid, { text: dash });
+    };
 
     // Special Trigger for Menu
     if (text.toLowerCase().includes('/menu') || text.toLowerCase().includes('/começar') || text.toLowerCase().includes('/start')) {
-        console.log(`[CMD] /menu para ${remoteJid}`);
+        console.log(`[CMD] Dashboard para ${remoteJid}`);
         if (!session.isRegistered) {
-            return sock.sendMessage(remoteJid, { text: "⚠️ Você precisa estar registado no fambaxitique.com para acessar o menu de grupos." });
+            return sock.sendMessage(remoteJid, { text: "⚠️ Você ainda não possui conta no fambaxitique.com. Cadastre-se agora para acessar o menu!" });
         }
-
-        const user = session.userData;
-        if (!user.groups || user.groups.length === 0) {
-            return sock.sendMessage(remoteJid, { text: `Olá, *${user.firstName}*! Você não possui grupos ativos no sistema.` });
-        }
-
-        let msgText = `Olá, *${user.firstName}*! Escolha um grupo para continuar:\n\n`;
-        user.groups.forEach((g, i) => {
-            msgText += `*${i + 1}.* ${g.name}\n`;
-        });
-
-        session.step = 'select_group';
-        return sock.sendMessage(remoteJid, { text: msgText });
+        return showDashboard();
     }
 
-    // Step 2: Group Selection
+    // DASHBOARD HANDLER
+    if (session.step === 'dashboard') {
+        switch (text) {
+            case '1': // MEUS GRUPOS
+                const user = session.userData;
+                if (!user.groups || user.groups.length === 0) {
+                    return sock.sendMessage(remoteJid, { text: "📁 Você não possui grupos ativos no sistema." });
+                }
+                let gText = `📁 *SEUS GRUPOS*\n\n`;
+                user.groups.forEach((g, i) => {
+                    gText += `*${i + 1}.* ${g.name} ${g.botEnabled ? '✅' : '❌'}\n`;
+                });
+                gText += `\n*0.* Voltar ao Dashboard`;
+                session.step = 'select_group';
+                return sock.sendMessage(remoteJid, { text: gText });
+
+            case '2': // FATURAS
+                try {
+                    const statusResp = await botApi.getStatus(phone);
+                    const invoices = statusResp.data.pendingInvoices || [];
+                    if (invoices.length === 0) {
+                        return sock.sendMessage(remoteJid, { text: "✅ Você não tem faturas pendentes. Parabéns pela organização!" });
+                    }
+                    let iText = `🧾 *FATURAS PENDENTES*\n\n`;
+                    invoices.forEach((inv, i) => {
+                        iText += `🔹 *${inv.groupName}*\n`;
+                        iText += `   - Valor: ${inv.amount} MT\n`;
+                        iText += `   - Vencimento: ${new Date(inv.dueDate).toLocaleDateString()}\n`;
+                        iText += `   - Ref: ${inv.month}/${inv.year}\n\n`;
+                    });
+                    iText += `_Para pagar uma fatura, selecione o grupo correspondente no menu de grupos._`;
+                    return sock.sendMessage(remoteJid, { text: iText });
+                } catch (e) {
+                    return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao consultar faturas." });
+                }
+
+            case '3': // EMPRÉSTIMOS
+                try {
+                    const statusResp = await botApi.getStatus(phone);
+                    const loans = statusResp.data.activeLoans || [];
+                    if (loans.length === 0) {
+                        return sock.sendMessage(remoteJid, { text: "💰 Você não tem empréstimos ativos no momento." });
+                    }
+                    let lText = `💰 *SEUS EMPRÉSTIMOS*\n\n`;
+                    loans.forEach(loan => {
+                        lText += `🏛️ *${loan.groupName}*\n`;
+                        lText += `   - Valor: ${loan.amountRequested} MT\n`;
+                        lText += `   - Em falta: ${loan.remainingBalance} MT\n`;
+                        lText += `   - Progresso: ${loan.progress}%\n\n`;
+                    });
+                    return sock.sendMessage(remoteJid, { text: lText });
+                } catch (e) {
+                    return sock.sendMessage(remoteJid, { text: "⚠️ Erro ao consultar empréstimos." });
+                }
+
+            case '4': // CONTA
+                const sub = session.userData.subscription || { planName: "Grátis", endDate: "N/A", botEnabled: false };
+                let msg = `👤 *DETALHES DA CONTA*\n\n`;
+                msg += `📱 *Número:* ${phone}\n`;
+                msg += `🎗️ *Plano:* ${sub.planName}\n`;
+                msg += `📅 *Válido até:* ${sub.endDate !== "N/A" ? new Date(sub.endDate).toLocaleDateString() : "N/A"}\n`;
+                msg += `🤖 *Status Bot:* ${sub.botEnabled ? "✅ Ativado" : "❌ Inativo"}\n\n`;
+                msg += `_Use /id para ver detalhes técnicos de JID._`;
+                return sock.sendMessage(remoteJid, { text: msg });
+
+            case '5': // AJUDA
+                delete session.step;
+                return sock.sendMessage(remoteJid, { text: "Até logo! Use */menu* ou fale comigo para voltar." });
+
+            default:
+                return sock.sendMessage(remoteJid, { text: "⚠️ Opção inválida. Digite de 1 a 5." });
+        }
+    }
+
+    // Step 2: Group Selection (Now from Dashboard Option 1)
     if (session.step === 'select_group') {
+        if (text === '0') return showDashboard();
+        
         const idx = parseInt(text) - 1;
         const group = session.userData?.groups?.[idx];
         
@@ -176,11 +258,13 @@ async function handleMessage(sock, msg) {
             session.groupId = group.id;
             session.groupName = group.name;
 
-            let menu = `Você selecionou *${group.name}*. O que deseja fazer?\n\n`;
+            let menu = `🏛️ *GRUPO: ${group.name}*\n\n`;
+            menu += `O que deseja fazer?\n\n`;
             menu += `1️⃣ Ver Saldo e Dívida\n`;
             menu += `2️⃣ Pagar Quota\n`;
             menu += `3️⃣ Pedir Empréstimo\n`;
-            menu += `4️⃣ Voltar ao início`;
+            menu += `4️⃣ Voltar aos Grupos\n`;
+            menu += `5️⃣ Voltar ao Início (Dashboard)`;
 
             return sock.sendMessage(remoteJid, { text: menu });
         }
@@ -192,30 +276,49 @@ async function handleMessage(sock, msg) {
             case '1':
                 const statusResp = await botApi.getStatus(phone);
                 const status = statusResp.data;
-                let sMsg = `📊 *Status no Grupo ${session.groupName}*\n\n`;
-                sMsg += `💰 Poupança Total: ${status.totalContribution} MT\n`;
+                let sMsg = `📊 *STATUS NO GRUPO: ${session.groupName}*\n\n`;
+                sMsg += `💰 *Sua Poupança:* ${status.totalContribution} MT\n`;
                 
                 const groupLoan = status.activeLoans.find(l => l.groupName === session.groupName);
                 if (groupLoan) {
-                    sMsg += `\n*Empréstimo Ativo:*\n`;
-                    sMsg += `- Valor: ${groupLoan.amountRequested} MT\n`;
-                    sMsg += `- Falta: ${groupLoan.remainingBalance} MT (${groupLoan.progress}% pago)`;
+                    sMsg += `\n*Dívida Ativa:*\n`;
+                    sMsg += `💵 Valor: ${groupLoan.amountRequested} MT\n`;
+                    sMsg += `⚠️ Restante: ${groupLoan.remainingBalance} MT\n`;
+                    sMsg += `📈 Progresso: ${groupLoan.progress}% pago\n`;
                 } else {
                     sMsg += `\n✅ Sem dívidas ativas neste grupo.`;
                 }
+
+                const groupInvoices = status.pendingInvoices.filter(i => i.groupName === session.groupName);
+                if (groupInvoices.length > 0) {
+                    sMsg += `\n\n🧾 *Faturas Pendentes:* ${groupInvoices.length}\n`;
+                    groupInvoices.forEach(inv => {
+                        sMsg += `- ${inv.amount} MT (${new Date(inv.dueDate).toLocaleDateString()})\n`;
+                    });
+                }
+
                 return sock.sendMessage(remoteJid, { text: sMsg });
 
             case '2':
                 session.step = 'await_payment';
-                return sock.sendMessage(remoteJid, { text: "Por favor, envie o ID da transação (ex: DBS...) e o valor pago." });
+                return sock.sendMessage(remoteJid, { text: "💳 *PAGAMENTO*\n\nPor favor, envie o ID da transação (ex: DBS...) e o valor pago no mesmo texto." });
 
             case '3':
                 session.step = 'await_loan';
-                return sock.sendMessage(remoteJid, { text: "Quanto deseja pedir emprestado? (Digite apenas o valor)" });
+                return sock.sendMessage(remoteJid, { text: "🏦 *SOLICITAR EMPRÉSTIMO*\n\nQuanto deseja pedir emprestado? (Digite apenas números)" });
 
             case '4':
-                delete session.step;
-                return sock.sendMessage(remoteJid, { text: "Sessão encerrada. Como posso ajudar?" });
+                session.step = 'select_group';
+                const userG = session.userData;
+                let gText = `📁 *SEUS GRUPOS*\n\n`;
+                userG.groups.forEach((g, i) => {
+                    gText += `*${i + 1}.* ${g.name} ${g.botEnabled ? '✅' : '❌'}\n`;
+                });
+                gText += `\n*0.* Voltar ao Dashboard`;
+                return sock.sendMessage(remoteJid, { text: gText });
+
+            case '5':
+                return showDashboard();
         }
     }
 
