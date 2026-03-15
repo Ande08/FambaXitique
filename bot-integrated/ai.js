@@ -3,18 +3,18 @@ const OpenAI = require("openai");
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-6: 
-7: const FAMBA_SYSTEM_DETAILS = `
-8: SOBRE O FAMBAXITIQUE:
-9: - É uma plataforma moderna para digitalizar Xitiques (grupos de poupança) e empréstimos em Moçambique.
-10: - Funcionalidades: Gestão de múltiplos grupos, convites por link/código, faturas automáticas (M-Pesa/e-Mola), e validação de pagamentos com comprovativo digital.
-11: - Empréstimos: Cálculo automático de juros, verificação de saldo do grupo, e abatimento progressivo da dívida com barra de progresso.
-12: - Benefícios: Segurança contra perdas de dinheiro físico, transparência total (todos veem o saldo e quem pagou), e relatórios em tempo real.
-13: 
-14: REGRA DE OURO DOS BOTS:
-15: - Os alertas e o menu do WhatsApp funcionam nos grupos onde o CRIADOR do grupo possui um plano pago com Bot.
-16: - Se o "João" criou um grupo e tem o plano, o "António" (que é membro mas não tem plano) pode usar o bot e receber notificações dentro desse grupo específico.
-17: `;
+
+const FAMBA_SYSTEM_DETAILS = `
+SOBRE O FAMBAXITIQUE:
+- É uma plataforma moderna para digitalizar Xitiques (grupos de poupança) e empréstimos em Moçambique.
+- Funcionalidades: Gestão de múltiplos grupos, convites por link/código, faturas automáticas (M-Pesa/e-Mola), e validação de pagamentos com comprovativo digital.
+- Empréstimos: Cálculo automático de juros, verificação de saldo do grupo, e abatimento progressivo da dívida com barra de progresso.
+- Benefícios: Segurança contra perdas de dinheiro físico, transparência total (todos veem o saldo e quem pagou), e relatórios em tempo real.
+
+REGRA DE OURO DOS BOTS:
+- Os alertas e o menu do WhatsApp funcionam nos grupos onde o CRIADOR do grupo possui um plano pago com Bot.
+- Se o "João" criou um grupo e tem o plano, o "António" (que é membro mas não tem plano) pode usar o bot e receber notificações dentro desse grupo específico.
+`;
 
 const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini';
 const configPath = path.join(__dirname, 'bot-config.json');
