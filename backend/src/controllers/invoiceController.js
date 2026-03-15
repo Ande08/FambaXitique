@@ -95,7 +95,12 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
     if (group.contributionFrequency === 'weekly') {
         const targetDay = group.dueDay; 
         const currentDay = now.getDay();
-        const diff = targetDay - currentDay;
+        let diff = targetDay - currentDay;
+        
+        // If we are generating manually and the day has passed, 
+        // it usually means we are late for THIS week's contribution.
+        // But if the user wants it to be 'strange', they might mean it's going back too far.
+        // Let's keep it targeting the current/upcoming week.
         
         dueDate = new Date(now);
         dueDate.setDate(now.getDate() + diff);
@@ -104,16 +109,20 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
         month = dueDate.getMonth() + 1;
         year = dueDate.getFullYear();
         
-        // Use ISO week or simple division
-        const firstDayOfYear = new Date(year, 0, 1);
-        const pastDaysOfYear = (dueDate - firstDayOfYear) / 86400000;
-        week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+        // Calculate week number more robustly
+        const startOfYear = new Date(year, 0, 1);
+        const days = Math.floor((dueDate - startOfYear) / (24 * 60 * 60 * 1000));
+        week = Math.ceil((days + startOfYear.getDay() + 1) / 7);
     } else if (group.contributionFrequency === 'monthly') {
         dueDate = new Date(year, now.getMonth(), group.dueDay);
-        // If dueDay is 31 and month has 30, it wraps to next month. Fix it:
-        if (dueDate.getMonth() !== now.getMonth()) {
-            dueDate.setDate(0);
+        
+        // If today is the 20th and dueDay is 5, it generates for 5th of current month (past).
+        // This is usually correct for 'late' invoices, but let's ensure it doesn't wrap weirdly.
+        const lastDayOfMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+        if (group.dueDay > lastDayOfMonth) {
+            dueDate = new Date(year, now.getMonth(), lastDayOfMonth);
         }
+        
         dueDate.setHours(23, 59, 59, 999);
     } else if (group.contributionFrequency === 'daily') {
         dueDate = new Date(now);
@@ -192,8 +201,12 @@ exports.automateInvoiceGeneration = async (specificGroupId = null) => {
             if (specificGroupId) {
                 shouldGenerate = true;
             } else {
-                if (group.contributionFrequency === 'monthly' && currentDayOfMonth === group.dueDay) {
-                    shouldGenerate = true;
+                if (group.contributionFrequency === 'monthly') {
+                    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                    const targetDay = Math.min(group.dueDay, lastDayOfMonth);
+                    if (currentDayOfMonth === targetDay) {
+                        shouldGenerate = true;
+                    }
                 } else if (group.contributionFrequency === 'weekly' && currentDayOfWeek === group.dueDay) {
                     shouldGenerate = true;
                 } else if (group.contributionFrequency === 'daily') {
