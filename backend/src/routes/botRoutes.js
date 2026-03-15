@@ -13,8 +13,8 @@ const botAuth = (req, res, next) => {
     }
     
     console.error(`[AUTH ERROR] Bot token mismatch!`);
-    console.error(`Received: [${token ? token.substring(0, 5) + '...' : 'null'}] (len: ${token ? token.length : 0})`);
-    console.error(`Expected: [${expectedToken ? expectedToken.substring(0, 5) + '...' : 'null'}] (len: ${expectedToken ? expectedToken.length : 0})`);
+    console.error(`Received: ${JSON.stringify(token)} (len: ${token ? token.length : 0})`);
+    console.error(`Expected: ${JSON.stringify(expectedToken)} (len: ${expectedToken ? expectedToken.length : 0})`);
     
     return res.status(401).json({ message: 'Acesso não autorizado ao Bot.' });
 };
