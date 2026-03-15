@@ -162,8 +162,11 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
                 const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long' }).format(new Date(year, month - 1));
                 const formattedDate = new Date(dueDate).toLocaleDateString('pt-PT');
                 
+                // Ensure phone has country code for WhatsApp
+                const formattedPhone = user.phone.startsWith('258') ? user.phone : `258${user.phone}`;
+
                 await BotNotification.create({
-                    phone: user.phone,
+                    phone: formattedPhone,
                     userId: user.id,
                     groupId: group.id,
                     type: 'INVOICE_GENERATED',

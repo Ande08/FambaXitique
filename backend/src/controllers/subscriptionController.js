@@ -109,8 +109,10 @@ exports.approveUpgrade = async (req, res) => {
         await payment.save();
 
         // 3. Queue WhatsApp Congratulatory message
+        const formattedPhone = payment.User.phone.startsWith('258') ? payment.User.phone : `258${payment.User.phone}`;
+
         await BotNotification.create({
-            phone: payment.User.phone,
+            phone: formattedPhone,
             userId: payment.userId,
             type: 'SUBSCRIPTION_UPGRADE',
             content: `🎉 Parabéns ${payment.User.firstName}! Sua subscrição ao plano ${payment.Plan.name} foi aprovada. Agora você pode desfrutar de todas as funcionalidades!`,
