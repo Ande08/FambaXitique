@@ -63,8 +63,8 @@ const LandingPage = ({ onStart }) => {
             <div className="position-relative">
               <div className="glass-card p-2 p-lg-4 rotate-3 shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1556742044-3c52d6e88c62?auto=format&fit=crop&q=80&w=800" 
-                  alt="Finance App" 
+                  src="/hero-fambaxitique.png" 
+                  alt="FambaXitique Trusted" 
                   className="img-fluid rounded-4 shadow"
                   style={{ minHeight: '400px', objectFit: 'cover' }}
                   loading="eager"
