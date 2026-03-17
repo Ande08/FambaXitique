@@ -67,70 +67,116 @@ const ModalListarFaturas = ({ show, onHide, group, onSelectInvoice }) => {
             Nenhuma fatura encontrada.
           </Alert>
         ) : (
-          <div className="table-responsive rounded-4 border overflow-hidden shadow-sm bg-white">
-            <Table hover className="mb-0 overflow-hidden">
-              <thead className="bg-light">
-                <tr className="small text-uppercase fw-bold text-muted">
-                  <th className="px-3 px-md-4 py-3">Mês</th>
-                  <th className="px-3 px-md-4 py-3">Vencimento</th>
-                  <th className="px-3 px-md-4 py-3">Valor</th>
-                  <th className="px-3 px-md-4 py-3">Status</th>
-                  <th className="px-3 px-md-4 py-3 text-end">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="align-middle">
-                    <td className="px-3 px-md-4 py-3 fw-bold">
-                      {new Intl.DateTimeFormat('pt-PT', { month: 'short', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1))}
-                    </td>
-                    <td className="px-3 px-md-4 py-3 text-muted" style={{fontSize: '0.85rem'}}>
-                      {new Date(invoice.dueDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-3 px-md-4 py-3 fw-black text-primary">
-                      {invoice.amount} MT
-                    </td>
-                    <td className="px-3 px-md-4 py-3">
-                      {getStatusBadge(invoice.status)}
-                    </td>
-                    <td className="px-3 px-md-4 py-3 text-end">
-                      {invoice.status !== 'paid' ? (
-                        <Button 
-                          variant="primary" 
-                          size="sm" 
-                          className="fw-bold rounded-pill px-3 px-md-4"
-                          onClick={() => onSelectInvoice(invoice)}
-                        >
-                          Pagar
-                        </Button>
-                      ) : (
-                        <div className="d-flex flex-column align-items-end">
-                          <span className="text-success small fw-bold">Liquidado</span>
+          <>
+            {/* Desktop/Tablet Table View */}
+            <div className="d-none d-md-block table-responsive rounded-4 border overflow-hidden shadow-sm bg-white">
+              <Table hover className="mb-0 overflow-hidden">
+                <thead className="bg-light">
+                  <tr className="small text-uppercase fw-bold text-muted">
+                    <th className="px-4 py-3">Mês</th>
+                    <th className="px-4 py-3">Vencimento</th>
+                    <th className="px-4 py-3">Valor</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-end">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((invoice) => (
+                    <tr key={invoice.id} className="align-middle">
+                      <td className="px-4 py-3 fw-bold">
+                        {new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1))}
+                      </td>
+                      <td className="px-4 py-3 text-muted">
+                        {new Date(invoice.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 fw-black text-primary">
+                        {invoice.amount} MT
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {getStatusBadge(invoice.status)}
+                      </td>
+                      <td className="px-4 py-3 text-end">
+                        {invoice.status !== 'paid' ? (
                           <Button 
-                            variant="link" 
+                            variant="primary" 
                             size="sm" 
-                            className="p-0 text-primary small fw-bold text-decoration-none"
+                            className="fw-bold rounded-pill px-4"
+                            onClick={() => onSelectInvoice(invoice)}
+                          >
+                            Pagar
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            className="fw-bold rounded-pill px-3"
                             onClick={async () => {
                               try {
                                 const res = await api.get(`/payments/user/${JSON.parse(localStorage.getItem('user')).id}/group/${group.id}`);
                                 const payment = res.data.find(p => p.invoiceId === invoice.id && p.status === 'approved');
                                 if (payment) handleDownloadReceipt(payment.id);
                                 else alert('Pagamento não localizado.');
-                              } catch (e) {
-                                alert('Erro ao buscar recibo.');
-                              }
+                              } catch (e) { alert('Erro ao buscar recibo.'); }
                             }}
                           >
                             Recibo
                           </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="d-md-none">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="bg-white rounded-4 border p-3 mb-3 shadow-sm">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <h6 className="fw-bold mb-0">
+                        {new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1))}
+                      </h6>
+                      <small className="text-muted">Vence: {new Date(invoice.dueDate).toLocaleDateString()}</small>
+                    </div>
+                    {getStatusBadge(invoice.status)}
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <div className="h5 fw-black text-primary mb-0">
+                      {invoice.amount} MT
+                    </div>
+                    {invoice.status !== 'paid' ? (
+                      <Button 
+                        variant="primary" 
+                        size="sm" 
+                        className="fw-bold rounded-pill px-4"
+                        onClick={() => onSelectInvoice(invoice)}
+                      >
+                        Pagar Agora
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="link" 
+                        className="p-0 text-success fw-bold text-decoration-none"
+                        onClick={async () => {
+                          try {
+                            const res = await api.get(`/payments/user/${JSON.parse(localStorage.getItem('user')).id}/group/${group.id}`);
+                            const payment = res.data.find(p => p.invoiceId === invoice.id && p.status === 'approved');
+                            if (payment) handleDownloadReceipt(payment.id);
+                            else alert('Pagamento não localizado.');
+                          } catch (e) { alert('Erro ao buscar recibo.'); }
+                        }}
+                      >
+                        Baixar Recibo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </Modal.Body>
       <Modal.Footer className="border-0 pb-4 pe-4">
