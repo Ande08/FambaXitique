@@ -224,7 +224,11 @@ exports.automateInvoiceGeneration = async (specificGroupId = null) => {
                 if (!isToday || specificGroupId) {
                     console.log(`[Scheduler] Generating invoices for group: ${group.name}`);
                     for (const member of group.Members) {
-                        await generateInvoicesForUserInGroup(member.id, group.id);
+                        try {
+                            await generateInvoicesForUserInGroup(member.id, group.id);
+                        } catch (memberErr) {
+                            console.error(`[Scheduler] Error generating invoice for member ${member.id} in group ${group.id}:`, memberErr.message);
+                        }
                     }
                     group.lastInvoicedAt = now;
                     await group.save();

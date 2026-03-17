@@ -68,7 +68,7 @@ const ModalListarFaturas = ({ show, onHide, group, onSelectInvoice }) => {
           </Alert>
         ) : (
           <div className="table-responsive rounded-4 border overflow-hidden shadow-sm bg-white">
-            <Table hover className="mb-0 overflow-hidden" style={{ minWidth: '600px' }}>
+            <Table hover className="mb-0 overflow-hidden">
               <thead className="bg-light">
                 <tr className="small text-uppercase fw-bold text-muted">
                   <th className="px-3 px-md-4 py-3">Mês</th>

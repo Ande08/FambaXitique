@@ -29,9 +29,9 @@ async function handleMessage(sock, msg) {
     }
 
     // Centralized Identification at the beginning
-    if (session.isRegistered === undefined) {
+    if (!session.isRegistered) { // Support retry if not registered or undefined
         try {
-            console.log(`[IDENTIFY] Buscando dados de ${phone}...`);
+            console.log(`[IDENTIFY] Buscando dados de ${phone} (JID: ${senderJid})...`);
             const resp = await botApi.getUserInfo(phone);
             session.userData = resp.data;
             session.isRegistered = true;

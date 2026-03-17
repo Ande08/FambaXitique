@@ -90,10 +90,12 @@ exports.approveUpgrade = async (req, res) => {
             const isSamePlan = subscription.planId === payment.planId;
             const oneYearFromNow = Date.now() + (365 * 24 * 60 * 60 * 1000);
             
-            // If it's a DIFFERENT plan OR the current date is way in the future (like the 10-year Free plan)
-            // we start the 30 days from NOW.
+            // If it's a DIFFERENT plan OR if the current plan is the "Grátis" plan (very far in the future expiry)
+            // we ALWAYS start the 30 days from NOW.
             let startBase = Date.now();
             if (isSamePlan && currentEnd < oneYearFromNow) {
+                // For paid extensions, we add to the current end date if it's in the future,
+                // otherwise start from now.
                 startBase = Math.max(currentEnd, Date.now());
             }
 

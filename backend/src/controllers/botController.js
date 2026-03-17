@@ -4,11 +4,19 @@ const { Op } = require('sequelize');
 exports.getUserInfo = async (req, res) => {
     try {
         const { phone } = req.params;
-        const cleanPhone = phone.replace(/^258/, '');
-        console.log(`[BOT-API] Pesquisando usuário: ${phone} (Clean: ${cleanPhone})`);
+        const cleanPhone = phone.replace(/\D/g, ''); // Extract only digits
+        const cleanPhoneNoPrefix = cleanPhone.replace(/^258/, '');
+        console.log(`[BOT-API] Pesquisando usuário: ${phone} (Clean: ${cleanPhone}, NoPrefix: ${cleanPhoneNoPrefix})`);
 
         const user = await User.findOne({
-            where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } },
+            where: { 
+                phone: { 
+                    [Op.or]: [
+                        { [Op.like]: `%${cleanPhone}` },
+                        { [Op.like]: `%${cleanPhoneNoPrefix}` }
+                    ]
+                } 
+            },
             include: [
                 {
                     model: Group,
@@ -80,9 +88,17 @@ exports.getUserInfo = async (req, res) => {
 exports.getStatus = async (req, res) => {
     try {
         const { phone } = req.params;
-        const cleanPhone = phone.replace(/^258/, '');
+        const cleanPhone = phone.replace(/\D/g, '');
+        const cleanPhoneNoPrefix = cleanPhone.replace(/^258/, '');
         const user = await User.findOne({ 
-            where: { phone: { [Op.in]: [phone, cleanPhone, `258${cleanPhone}`] } },
+            where: { 
+                phone: { 
+                    [Op.or]: [
+                        { [Op.like]: `%${cleanPhone}` },
+                        { [Op.like]: `%${cleanPhoneNoPrefix}` }
+                    ]
+                } 
+            },
             include: [{
                 model: Subscription,
                 as: 'Subscriptions',
@@ -301,7 +317,7 @@ exports.getNotifications = async (req, res) => {
                     }]
                 }
             ],
-            limit: 50
+            limit: 200
         });
 
         console.log(`📡 [BOT-API] Encontradas ${notifications.length} notificações pendentes na base de dados.`);
