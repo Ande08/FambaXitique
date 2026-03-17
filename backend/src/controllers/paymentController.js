@@ -1,4 +1,4 @@
-const { Payment, Group, User, Invoice, Loan, BotNotification } = require('../models');
+const { Payment, Group, User, Invoice, Loan, BotNotification, Membership } = require('../models');
 const receiptService = require('../services/receiptService');
 const path = require('path');
 const fs = require('fs');
@@ -177,6 +177,17 @@ exports.getPendingPayments = async (req, res) => {
 exports.getUserPaymentHistory = async (req, res) => {
     try {
         const { userId, groupId } = req.params;
+        const requesterId = req.user.id;
+
+        // Check if requester is a member or admin of the group
+        const membership = await Membership.findOne({
+            where: { userId: requesterId, groupId }
+        });
+
+        if (!membership && requesterId !== userId) {
+            return res.status(403).json({ message: 'Não autorizado a ver o histórico deste grupo.' });
+        }
+
         const payments = await Payment.findAll({
             where: { userId, groupId },
             order: [['createdAt', 'DESC']],

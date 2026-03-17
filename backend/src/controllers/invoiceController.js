@@ -6,13 +6,13 @@ exports.getMemberInvoices = async (req, res) => {
         const { userId, groupId } = req.params;
         const requesterId = req.user.id;
 
-        // Check if requester is admin of the group
+        // Check if requester is at least a member of the group
         const membership = await Membership.findOne({
-            where: { userId: requesterId, groupId, role: 'ADMIN' }
+            where: { userId: requesterId, groupId }
         });
 
         if (!membership && requesterId !== userId) {
-            return res.status(403).json({ message: 'Não autorizado a ver faturas deste membro.' });
+            return res.status(403).json({ message: 'Não autorizado a ver faturas neste grupo.' });
         }
 
         // Auto-generate for the current month if not exists
