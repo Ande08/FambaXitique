@@ -272,54 +272,90 @@ const DashboardSuperAdmin = ({ onLogout }) => {
             {activeTab === 'upgrades' && (
               <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
                 <Card.Body className="p-0">
-                  <Table responsive hover className="mb-0 align-middle">
-                    <thead className="bg-light">
-                      <tr>
-                        <th className="px-4 py-3 border-0">Usuário</th>
-                        <th className="py-3 border-0">Plano Destino</th>
-                        <th className="py-3 border-0">Comprovativo</th>
-                        <th className="py-3 text-end px-4 border-0">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingUpgrades.length === 0 ? (
-                        <tr><td colSpan="4" className="text-center py-5">Nenhum pedido pendente</td></tr>
-                      ) : (
-                        pendingUpgrades.map(up => (
-                          <tr key={up.id}>
-                            <td className="px-4 py-3">
-                              <span className="fw-bold">{up.User?.firstName} {up.User?.lastName}</span>
-                              <br/><small>{up.User?.phone}</small>
-                            </td>
-                            <td className="py-3">
-                              <Badge bg="primary">{up.Plan?.name}</Badge>
-                              <br/><small className="text-muted">{up.amount} MT</small>
-                            </td>
-                            <td className="py-3">
-                              {up.proofPath ? (
-                                <a href={`${api.defaults.baseURL.replace('/api', '')}${up.proofPath}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-link text-primary p-0">
-                                  Ver Imagem
-                                </a>
-                              ) : 'S/ Ref'}
-                            </td>
-                             <td className="py-3 text-end px-4">
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="fw-bold rounded-pill px-3"
-                                onClick={() => {
-                                  setSelectedUpgrade(up);
-                                  setShowUpgradeModal(true);
-                                }}
-                              >
-                                Detalhes
-                              </Button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </Table>
+                  {/* Desktop/Tablet Table View */}
+                  <div className="d-none d-md-block">
+                    <Table hover className="mb-0 align-middle">
+                      <thead className="bg-light">
+                        <tr>
+                          <th className="px-4 py-3 border-0">Usuário</th>
+                          <th className="py-3 border-0">Plano Destino</th>
+                          <th className="py-3 border-0">Comprovativo</th>
+                          <th className="py-3 text-end px-4 border-0">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingUpgrades.length === 0 ? (
+                          <tr><td colSpan="4" className="text-center py-5">Nenhum pedido pendente</td></tr>
+                        ) : (
+                          pendingUpgrades.map(up => (
+                            <tr key={up.id}>
+                              <td className="px-4 py-3">
+                                <span className="fw-bold">{up.User?.firstName} {up.User?.lastName}</span>
+                                <br/><small>{up.User?.phone}</small>
+                              </td>
+                              <td className="py-3">
+                                <Badge bg="primary">{up.Plan?.name}</Badge>
+                                <br/><small className="text-muted">{up.amount} MT</small>
+                              </td>
+                              <td className="py-3">
+                                {up.proofPath ? (
+                                  <a href={`${api.defaults.baseURL.replace('/api', '')}${up.proofPath}`} target="_blank" rel="noreferrer" className="btn btn-sm btn-link text-primary p-0">
+                                    Ver Imagem
+                                  </a>
+                                ) : 'S/ Ref'}
+                              </td>
+                               <td className="py-3 text-end px-4">
+                                <Button 
+                                  variant="outline-primary" 
+                                  size="sm" 
+                                  className="fw-bold rounded-pill px-3"
+                                  onClick={() => {
+                                    setSelectedUpgrade(up);
+                                    setShowUpgradeModal(true);
+                                  }}
+                                >
+                                  Detalhes
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="d-md-none p-3">
+                    {pendingUpgrades.length === 0 ? (
+                      <p className="text-center text-muted py-4 mb-0">Nenhum pedido pendente</p>
+                    ) : (
+                      pendingUpgrades.map(up => (
+                        <div key={up.id} className="bg-white rounded-4 border p-3 mb-3 shadow-sm">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <h6 className="fw-bold mb-0">{up.User?.firstName} {up.User?.lastName}</h6>
+                              <small className="text-muted">{up.User?.phone}</small>
+                            </div>
+                            <Badge bg="primary">{up.Plan?.name}</Badge>
+                          </div>
+                          <div className="d-flex justify-content-between align-items-center mt-3">
+                            <span className="fw-bold text-dark">{up.amount} MT</span>
+                            <Button 
+                              variant="primary" 
+                              size="sm" 
+                              className="fw-bold rounded-pill px-4"
+                              onClick={() => {
+                                setSelectedUpgrade(up);
+                                setShowUpgradeModal(true);
+                              }}
+                            >
+                              Ver Detalhes
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </Card.Body>
               </Card>
             )}
@@ -350,48 +386,84 @@ const DashboardSuperAdmin = ({ onLogout }) => {
             {activeTab === 'subscriptions' && (
               <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
                 <Card.Body className="p-0">
-                  <Table responsive hover className="mb-0 align-middle">
-                    <thead className="bg-light">
-                      <tr>
-                        <th className="px-4 py-3 border-0">Usuário</th>
-                        <th className="py-3 border-0">Plano</th>
-                        <th className="py-3 border-0 text-center">Status</th>
-                        <th className="py-3 border-0">Vencimento</th>
-                        <th className="py-3 text-end px-4 border-0">Desde</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subscriptions.length === 0 ? (
-                        <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhuma subscrição encontrada.</td></tr>
-                      ) : (
-                        subscriptions.map(sub => (
-                          <tr key={sub.id}>
-                            <td className="px-4 py-3">
-                              <span className="fw-bold">{sub.User?.firstName} {sub.User?.lastName}</span>
-                              <br/><small className="text-muted">{sub.User?.phone}</small>
-                            </td>
-                            <td className="py-3">
-                              <Badge bg={sub.Plan?.name === 'Grátis' ? 'secondary' : 'primary'}>
-                                {sub.Plan?.name}
-                              </Badge>
-                            </td>
-                            <td className="py-3 text-center">
-                              <Badge bg={sub.status === 'active' ? 'success' : 'danger'} className="rounded-pill">
-                                {sub.status === 'active' ? 'Ativo' : 'Expirado'}
-                              </Badge>
-                            </td>
-                            <td className="py-3">
-                              {new Date(sub.endDate).toLocaleDateString()}
-                              {new Date(sub.endDate) < new Date() && <i className="bi bi-exclamation-triangle-fill text-danger ms-2" title="Expirado"></i>}
-                            </td>
-                            <td className="py-3 text-end px-4 text-muted small">
-                              {new Date(sub.createdAt).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </Table>
+                  {/* Desktop/Tablet Table View */}
+                  <div className="d-none d-md-block">
+                    <Table hover className="mb-0 align-middle">
+                      <thead className="bg-light">
+                        <tr>
+                          <th className="px-4 py-3 border-0">Usuário</th>
+                          <th className="py-3 border-0">Plano</th>
+                          <th className="py-3 border-0 text-center">Status</th>
+                          <th className="py-3 border-0">Vencimento</th>
+                          <th className="py-3 text-end px-4 border-0">Desde</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subscriptions.length === 0 ? (
+                          <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhuma subscrição encontrada.</td></tr>
+                        ) : (
+                          subscriptions.map(sub => (
+                            <tr key={sub.id}>
+                              <td className="px-4 py-3">
+                                <span className="fw-bold">{sub.User?.firstName} {sub.User?.lastName}</span>
+                                <br/><small className="text-muted">{sub.User?.phone}</small>
+                              </td>
+                              <td className="py-3">
+                                <Badge bg={sub.Plan?.name === 'Grátis' ? 'secondary' : 'primary'}>
+                                  {sub.Plan?.name}
+                                </Badge>
+                              </td>
+                              <td className="py-3 text-center">
+                                <Badge bg={sub.status === 'active' ? 'success' : 'danger'} className="rounded-pill">
+                                  {sub.status === 'active' ? 'Ativo' : 'Expirado'}
+                                </Badge>
+                              </td>
+                              <td className="py-3">
+                                {new Date(sub.endDate).toLocaleDateString()}
+                                {new Date(sub.endDate) < new Date() && <i className="bi bi-exclamation-triangle-fill text-danger ms-2" title="Expirado"></i>}
+                              </td>
+                              <td className="py-3 text-end px-4 text-muted small">
+                                {new Date(sub.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="d-md-none p-3">
+                    {subscriptions.length === 0 ? (
+                      <p className="text-center text-muted py-4 mb-0">Nenhuma subscrição encontrada</p>
+                    ) : (
+                      subscriptions.map(sub => (
+                        <div key={sub.id} className="bg-white rounded-4 border p-3 mb-3 shadow-sm">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <h6 className="fw-bold mb-0">{sub.User?.firstName} {sub.User?.lastName}</h6>
+                              <small className="text-muted">{sub.User?.phone}</small>
+                            </div>
+                            <Badge bg={sub.status === 'active' ? 'success' : 'danger'} className="rounded-pill">
+                              {sub.status === 'active' ? 'Ativo' : 'Exp.'}
+                            </Badge>
+                          </div>
+                          <div className="d-flex justify-content-between align-items-end mt-3">
+                            <div>
+                              <small className="text-muted d-block small text-uppercase fw-bold">Plano</small>
+                              <Badge bg={sub.Plan?.name === 'Grátis' ? 'secondary' : 'primary'}>{sub.Plan?.name}</Badge>
+                            </div>
+                            <div className="text-end">
+                              <small className="text-muted d-block small text-uppercase fw-bold">Vencimento</small>
+                              <span className={`fw-bold ${new Date(sub.endDate) < new Date() ? 'text-danger' : 'text-dark'}`}>
+                                {new Date(sub.endDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </Card.Body>
               </Card>
             )}
@@ -399,98 +471,140 @@ const DashboardSuperAdmin = ({ onLogout }) => {
             {(activeTab === 'pending' || activeTab === 'all') && (
               <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
                 <Card.Body className="p-0">
-                  <Table responsive hover className="mb-0 align-middle">
-                    <thead className="bg-light">
-                      <tr>
-                        <th className="px-4 py-3 border-0">Nome do Grupo</th>
-                        <th className="py-3 border-0">Criador</th>
-                        <th className="py-3 border-0 text-center">Status</th>
-                        <th className="py-3 border-0">Data</th>
-                        <th className="py-3 text-end px-4 border-0">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
+                  {/* Desktop/Tablet Table View */}
+                  <div className="d-none d-md-block">
+                    <Table hover className="mb-0 align-middle">
+                      <thead className="bg-light">
                         <tr>
-                          <td colSpan="5" className="text-center py-5 text-muted">
-                            Nenhum grupo encontrado nesta categoria.
-                          </td>
+                          <th className="px-4 py-3 border-0">Nome do Grupo</th>
+                          <th className="py-3 border-0">Criador</th>
+                          <th className="py-3 border-0 text-center">Status</th>
+                          <th className="py-3 border-0">Data</th>
+                          <th className="py-3 text-end px-4 border-0">Ações</th>
                         </tr>
-                      ) : (
-                        (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
-                          <tr key={group.id}>
-                            <td className="px-4 py-3">
-                              <span className="fw-bold d-block">{group.name}</span>
-                              <span className="text-muted small">{group.description}</span>
+                      </thead>
+                      <tbody>
+                        {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="text-center py-5 text-muted">
+                              Nenhum grupo encontrado nesta categoria.
                             </td>
-                            <td className="py-3">
-                              {group.Creator?.firstName} {group.Creator?.lastName}
-                              <br/><small className="text-muted">{group.Creator?.phone}</small>
-                            </td>
-                            <td className="py-3 text-center">
-                              <Badge bg={group.status === 'active' ? 'success' : group.status === 'blocked' ? 'danger' : group.status === 'pending' ? 'warning' : 'secondary'} className="rounded-pill px-3">
-                                {group.status === 'active' ? 'Ativo' : group.status === 'blocked' ? 'Bloqueado' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                              </Badge>
-                            </td>
-                            <td className="py-3 small">
-                              {new Date(group.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="py-3 text-end px-4">
-                              {group.status === 'pending' && (
-                                <>
-                                  <Button 
-                                    variant="outline-danger" 
-                                    size="sm" 
-                                    className="me-2 fw-bold rounded-pill px-3"
-                                    onClick={() => handleAction(group.id, 'rejected')}
-                                    disabled={actionLoading === group.id}
-                                  >
-                                    {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
-                                  </Button>
-                                  <Button 
-                                    variant="primary" 
-                                    size="sm" 
-                                    className="fw-bold rounded-pill px-3"
-                                    onClick={() => handleAction(group.id, 'active')}
-                                    disabled={actionLoading === group.id}
-                                  >
-                                    {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
-                                  </Button>
-                                </>
-                              )}
-                              {group.status !== 'pending' && (
-                                <div className="d-flex justify-content-end gap-2">
-                                  {group.status === 'active' ? (
+                          </tr>
+                        ) : (
+                          (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
+                            <tr key={group.id}>
+                              <td className="px-4 py-3">
+                                <span className="fw-bold d-block">{group.name}</span>
+                                <span className="text-muted small">{group.description}</span>
+                              </td>
+                              <td className="py-3">
+                                {group.Creator?.firstName} {group.Creator?.lastName}
+                                <br/><small className="text-muted">{group.Creator?.phone}</small>
+                              </td>
+                              <td className="py-3 text-center">
+                                <Badge bg={group.status === 'active' ? 'success' : group.status === 'blocked' ? 'danger' : group.status === 'pending' ? 'warning' : 'secondary'} className="rounded-pill px-3">
+                                  {group.status === 'active' ? 'Ativo' : group.status === 'blocked' ? 'Bloqueado' : group.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+                                </Badge>
+                              </td>
+                              <td className="py-3 small">
+                                {new Date(group.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="py-3 text-end px-4">
+                                {group.status === 'pending' && (
+                                  <>
                                     <Button 
-                                      variant="outline-warning" 
+                                      variant="outline-danger" 
                                       size="sm" 
-                                      className="fw-bold rounded-pill px-3 border-0"
-                                      onClick={() => handleAction(group.id, 'blocked')}
+                                      className="me-2 fw-bold rounded-pill px-3"
+                                      onClick={() => handleAction(group.id, 'rejected')}
                                       disabled={actionLoading === group.id}
                                     >
-                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-slash-circle me-1"></i> Bloquear</>}
+                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Rejeitar'}
                                     </Button>
-                                  ) : group.status === 'blocked' ? (
                                     <Button 
-                                      variant="outline-success" 
+                                      variant="primary" 
                                       size="sm" 
-                                      className="fw-bold rounded-pill px-3 border-0"
+                                      className="fw-bold rounded-pill px-3"
                                       onClick={() => handleAction(group.id, 'active')}
                                       disabled={actionLoading === group.id}
                                     >
-                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-check-circle me-1"></i> Reativar</>}
+                                      {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : 'Aprovar'}
                                     </Button>
-                                  ) : (
-                                    <span className="text-muted small italic">Rejeitado</span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </Table>
+                                  </>
+                                )}
+                                {group.status !== 'pending' && (
+                                  <div className="d-flex justify-content-end gap-2">
+                                    {group.status === 'active' ? (
+                                      <Button 
+                                        variant="outline-warning" 
+                                        size="sm" 
+                                        className="fw-bold rounded-pill px-3 border-0"
+                                        onClick={() => handleAction(group.id, 'blocked')}
+                                        disabled={actionLoading === group.id}
+                                      >
+                                        {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-slash-circle me-1"></i> Bloquear</>}
+                                      </Button>
+                                    ) : group.status === 'blocked' ? (
+                                      <Button 
+                                        variant="outline-success" 
+                                        size="sm" 
+                                        className="fw-bold rounded-pill px-3 border-0"
+                                        onClick={() => handleAction(group.id, 'active')}
+                                        disabled={actionLoading === group.id}
+                                      >
+                                        {actionLoading === group.id ? <Spinner animation="border" size="sm" /> : <><i className="bi bi-check-circle me-1"></i> Reativar</>}
+                                      </Button>
+                                    ) : (
+                                      <span className="text-muted small italic">Rejeitado</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="d-md-none p-3">
+                    {(activeTab === 'pending' ? pendingGroups : allGroups).length === 0 ? (
+                      <p className="text-center text-muted py-4 mb-0">Nenhum grupo encontrado</p>
+                    ) : (
+                      (activeTab === 'pending' ? pendingGroups : allGroups).map(group => (
+                        <div key={group.id} className="bg-white rounded-4 border p-3 mb-3 shadow-sm">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <h6 className="fw-bold mb-0">{group.name}</h6>
+                              <small className="text-muted">{group.Creator?.firstName} {group.Creator?.lastName}</small>
+                            </div>
+                            <Badge bg={group.status === 'active' ? 'success' : group.status === 'pending' ? 'warning' : 'danger'}>
+                              {group.status === 'active' ? 'Ativo' : group.status === 'pending' ? 'Pend.' : 'Bloq.'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="d-flex justify-content-end gap-2 mt-3 border-top pt-3">
+                            {group.status === 'pending' ? (
+                              <>
+                                <Button variant="outline-danger" size="sm" className="fw-bold rounded-pill px-3" onClick={() => handleAction(group.id, 'rejected')}>Rejeitar</Button>
+                                <Button variant="primary" size="sm" className="fw-bold rounded-pill px-3" onClick={() => handleAction(group.id, 'active')}>Aprovar</Button>
+                              </>
+                            ) : (
+                              <Button 
+                                variant={group.status === 'active' ? 'outline-warning' : 'outline-success'} 
+                                size="sm" 
+                                className="fw-bold rounded-pill px-3" 
+                                onClick={() => handleAction(group.id, group.status === 'active' ? 'blocked' : 'active')}
+                              >
+                                {group.status === 'active' ? 'Bloquear' : 'Reativar'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </Card.Body>
               </Card>
             )}

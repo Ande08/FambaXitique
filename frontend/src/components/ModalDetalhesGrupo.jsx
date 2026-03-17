@@ -180,47 +180,70 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
                           </div>
                           
                           {paymentHistory[member.id]?.length > 0 ? (
-                            <div className="table-responsive rounded-3 border overflow-hidden">
-                              <Table size="sm" hover className="small mb-0">
-                                <thead className="bg-light">
-                                  <tr>
-                                    <th className="px-3 py-2 border-0">Data</th>
-                                    <th className="px-3 py-2 border-0">Fatura</th>
-                                    <th className="px-3 py-2 border-0">Conta</th>
-                                    <th className="px-3 py-2 border-0">Valor</th>
-                                    <th className="px-3 py-2 border-0 text-end">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {paymentHistory[member.id].map(p => (
-                                    <tr key={p.id}>
-                                      <td className="px-3 py-2">{new Date(p.createdAt).toLocaleDateString()}</td>
-                                      <td className="px-3 py-2 fw-bold text-dark">
-                                        {p.Invoice ? new Intl.DateTimeFormat('pt-PT', { month: 'short', year: 'numeric' }).format(new Date(p.Invoice.year, p.Invoice.month - 1)) : '-'}
-                                      </td>
-                                      <td className="px-3 py-2 text-muted small">
-                                        {p.paymentMethod || (p.transactionId ? p.transactionId.substring(0,8) : '-')}
-                                      </td>
-                                      <td className="px-3 py-2 fw-black text-primary">{p.amount} MT</td>
-                                      <td className="px-3 py-2 text-end">
-                                        <Badge bg={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="rounded-pill px-2">
-                                          {p.status === 'approved' ? 'Aprovado' : p.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
-                                        </Badge>
-                                        {p.status === 'approved' && (
-                                          <Button 
-                                            variant="link" 
-                                            size="sm" 
-                                            className="p-0 ms-2 text-primary"
-                                            onClick={() => handleDownloadReceipt(p.id)}
-                                          >
-                                            <i className="bi bi-download"></i>
-                                          </Button>
-                                        )}
-                                      </td>
+                            <div className="rounded-3 border overflow-hidden">
+                              {/* Desktop/Tablet Table View */}
+                              <div className="d-none d-md-block table-responsive">
+                                <Table size="sm" hover className="small mb-0">
+                                  <thead className="bg-light">
+                                    <tr>
+                                      <th className="px-3 py-2 border-0">Data</th>
+                                      <th className="px-3 py-2 border-0">Fatura</th>
+                                      <th className="px-3 py-2 border-0">Conta</th>
+                                      <th className="px-3 py-2 border-0">Valor</th>
+                                      <th className="px-3 py-2 border-0 text-end">Status</th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </Table>
+                                  </thead>
+                                  <tbody>
+                                    {paymentHistory[member.id].map(p => (
+                                      <tr key={p.id}>
+                                        <td className="px-3 py-2">{new Date(p.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-3 py-2 fw-bold text-dark">
+                                          {p.Invoice ? new Intl.DateTimeFormat('pt-PT', { month: 'short', year: 'numeric' }).format(new Date(p.Invoice.year, p.Invoice.month - 1)) : '-'}
+                                        </td>
+                                        <td className="px-3 py-2 text-muted small">
+                                          {p.paymentMethod || (p.transactionId ? p.transactionId.substring(0,8) : '-')}
+                                        </td>
+                                        <td className="px-3 py-2 fw-black text-primary">{p.amount} MT</td>
+                                        <td className="px-3 py-2 text-end">
+                                          <Badge bg={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="rounded-pill px-2">
+                                            {p.status === 'approved' ? 'Aprovado' : p.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                                          </Badge>
+                                          {p.status === 'approved' && (
+                                            <Button 
+                                              variant="link" 
+                                              size="sm" 
+                                              className="p-0 ms-2 text-primary"
+                                              onClick={() => handleDownloadReceipt(p.id)}
+                                            >
+                                              <i className="bi bi-download"></i>
+                                            </Button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </Table>
+                              </div>
+
+                              {/* Mobile Card View */}
+                              <div className="d-md-none p-2 bg-light bg-opacity-50">
+                                {paymentHistory[member.id].map(p => (
+                                  <div key={p.id} className="bg-white rounded-3 border p-2 mb-2 shadow-sm small">
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                      <span className="fw-bold text-dark">
+                                        {p.Invoice ? new Intl.DateTimeFormat('pt-PT', { month: 'short', year: 'numeric' }).format(new Date(p.Invoice.year, p.Invoice.month - 1)) : 'Fatura'}
+                                      </span>
+                                      <Badge bg={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="rounded-pill">
+                                        {p.status === 'approved' ? 'Aprov.' : p.status === 'rejected' ? 'Rejeit.' : 'Pend.'}
+                                      </Badge>
+                                    </div>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                      <span className="fw-black text-primary">{p.amount} MT</span>
+                                      <span className="text-muted">{new Date(p.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           ) : historyLoading !== member.id && (
                             <div className="text-center py-4 bg-light rounded-3 border dashed">
@@ -252,56 +275,84 @@ const ModalDetalhesGrupo = ({ show, onHide, group }) => {
                               <Spinner animation="border" size="sm" variant="primary" />
                             </div>
                           ) : userInvoices[member.id]?.filter(inv => invoiceFilter === 'all' || inv.status === invoiceFilter).length > 0 ? (
-                            <div className="table-responsive rounded-3 border overflow-hidden">
-                              <Table size="sm" hover className="small mb-0">
-                                <thead className="bg-light">
-                                  <tr>
-                                    <th className="px-3 py-2 border-0">Mês</th>
-                                    <th className="px-3 py-2 border-0 text-center">Vencimento</th>
-                                    <th className="px-3 py-2 border-0 text-center">Valor</th>
-                                    <th className="px-3 py-2 border-0 text-end">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {userInvoices[member.id]
-                                    .filter(inv => invoiceFilter === 'all' || inv.status === invoiceFilter)
-                                    .map(inv => (
-                                    <tr key={inv.id}>
-                                      <td className="px-3 py-2 fw-bold text-dark">
-                                        {new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(inv.year, inv.month - 1))}
-                                      </td>
-                                      <td className="px-3 py-2 text-center text-muted">
-                                        {new Date(inv.dueDate).toLocaleDateString()}
-                                      </td>
-                                      <td className="px-3 py-2 text-center fw-black">{inv.amount} MT</td>
-                                      <td className="px-3 py-2 text-end">
-                                        <Badge 
-                                          bg={inv.status === 'paid' ? 'success' : inv.status === 'overdue' ? 'danger' : 'warning'} 
-                                          className="rounded-pill px-2"
-                                        >
-                                          {inv.status === 'paid' ? 'Pago' : inv.status === 'overdue' ? 'Atrasada' : 'Pendente'}
-                                        </Badge>
-                                        {inv.status === 'paid' && (
-                                          <Button 
-                                            variant="link" 
-                                            size="sm" 
-                                            className="p-0 ms-2 text-primary"
-                                            onClick={() => {
-                                              const payment = paymentHistory[member.id]?.find(p => p.invoiceId === inv.id && p.status === 'approved');
-                                              if (payment) handleDownloadReceipt(payment.id);
-                                              else alert('Recibo não encontrado.');
-                                            }}
-                                          >
-                                            <i className="bi bi-download"></i>
-                                          </Button>
-                                        )}
-                                      </td>
+                            <div className="rounded-3 border overflow-hidden">
+                              {/* Desktop/Tablet Table View */}
+                              <div className="d-none d-md-block table-responsive">
+                                <Table size="sm" hover className="small mb-0">
+                                  <thead className="bg-light">
+                                    <tr>
+                                      <th className="px-3 py-2 border-0">Mês</th>
+                                      <th className="px-3 py-2 border-0 text-center">Vencimento</th>
+                                      <th className="px-3 py-2 border-0 text-center">Valor</th>
+                                      <th className="px-3 py-2 border-0 text-end">Status</th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </Table>
+                                  </thead>
+                                  <tbody>
+                                    {userInvoices[member.id]
+                                      .filter(inv => invoiceFilter === 'all' || inv.status === invoiceFilter)
+                                      .map(inv => (
+                                      <tr key={inv.id}>
+                                        <td className="px-3 py-2 fw-bold text-dark">
+                                          {new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(inv.year, inv.month - 1))}
+                                        </td>
+                                        <td className="px-3 py-2 text-center text-muted">
+                                          {new Date(inv.dueDate).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-3 py-2 text-center fw-black">{inv.amount} MT</td>
+                                        <td className="px-3 py-2 text-end">
+                                          <Badge 
+                                            bg={inv.status === 'paid' ? 'success' : inv.status === 'overdue' ? 'danger' : 'warning'} 
+                                            className="rounded-pill px-2"
+                                          >
+                                            {inv.status === 'paid' ? 'Pago' : inv.status === 'overdue' ? 'Atrasada' : 'Pendente'}
+                                          </Badge>
+                                          {inv.status === 'paid' && (
+                                            <Button 
+                                              variant="link" 
+                                              size="sm" 
+                                              className="p-0 ms-2 text-primary"
+                                              onClick={() => {
+                                                const payment = paymentHistory[member.id]?.find(p => p.invoiceId === inv.id && p.status === 'approved');
+                                                if (payment) handleDownloadReceipt(payment.id);
+                                                else alert('Recibo não encontrado.');
+                                              }}
+                                            >
+                                              <i className="bi bi-download"></i>
+                                            </Button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </Table>
+                              </div>
+
+                              {/* Mobile Card View */}
+                              <div className="d-md-none p-2 bg-light bg-opacity-50">
+                                {userInvoices[member.id]
+                                  .filter(inv => invoiceFilter === 'all' || inv.status === invoiceFilter)
+                                  .map(inv => (
+                                  <div key={inv.id} className="bg-white rounded-3 border p-2 mb-2 shadow-sm small">
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                      <span className="fw-bold text-dark">
+                                        {new Intl.DateTimeFormat('pt-PT', { month: 'short' }).format(new Date(inv.year, inv.month - 1))} {inv.year}
+                                      </span>
+                                      <Badge 
+                                        bg={inv.status === 'paid' ? 'success' : inv.status === 'overdue' ? 'danger' : 'warning'} 
+                                        className="rounded-pill"
+                                      >
+                                        {inv.status === 'paid' ? 'Pago' : inv.status === 'overdue' ? 'Atras.' : 'Pend.'}
+                                      </Badge>
+                                    </div>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                      <span className="fw-black text-primary">{inv.amount} MT</span>
+                                      <span className="text-muted small">Venc. {new Date(inv.dueDate).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          ) : (
+                                                  ) : (
                             <div className="text-center py-4 bg-light rounded-3 border dashed">
                               <p className="text-muted small mb-0">Nenhuma fatura encontrada com este filtro.</p>
                             </div>

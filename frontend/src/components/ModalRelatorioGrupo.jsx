@@ -84,44 +84,77 @@ const ModalRelatorioGrupo = ({ show, onHide, group }) => {
               <Card.Header className="bg-white py-3 border-0">
                 <h6 className="fw-bold mb-0">Resumo por Membro</h6>
               </Card.Header>
-              <div className="table-responsive">
-                <Table hover className="mb-0 align-middle">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="px-4 py-3 border-0">Membro</th>
-                      <th className="px-4 py-3 border-0 text-center">Faturas Pagas</th>
-                      <th className="px-4 py-3 border-0 text-center">Faturas Pendentes</th>
-                      <th className="px-4 py-3 border-0 text-center">Dívida Ativa</th>
-                      <th className="px-4 py-3 border-0 text-end">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.members.map(member => (
-                      <tr key={member.id}>
-                        <td className="px-4 py-3">
-                          <span className="fw-bold d-block">{member.name}</span>
+              <div className="rounded-4 overflow-hidden border">
+                {/* Desktop/Tablet Table View */}
+                <div className="d-none d-md-block table-responsive">
+                  <Table hover className="mb-0 align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="px-4 py-3 border-0">Membro</th>
+                        <th className="px-4 py-3 border-0 text-center">Faturas Pagas</th>
+                        <th className="px-4 py-3 border-0 text-center">Faturas Pendentes</th>
+                        <th className="px-4 py-3 border-0 text-center">Dívida Ativa</th>
+                        <th className="px-4 py-3 border-0 text-end">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.members.map(member => (
+                        <tr key={member.id}>
+                          <td className="px-4 py-3">
+                            <span className="fw-bold d-block">{member.name}</span>
+                            <small className="text-muted">{member.phone}</small>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Badge bg="success" pill>{member.invoicesPaid}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Badge bg={member.invoicesPending > 0 ? 'danger' : 'light'} text={member.invoicesPending > 0 ? 'white' : 'dark'} pill>
+                              {member.invoicesPending}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={Number(member.activeLoanBalance) > 0 ? 'text-danger fw-bold' : 'text-muted'}>
+                              {Number(member.activeLoanBalance).toLocaleString()} MT
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-end">
+                             <small className="text-primary fw-bold clickable" style={{cursor: 'pointer'}}>Detalhes</small>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="d-md-none p-3 bg-white">
+                  {report.members.map(member => (
+                    <div key={member.id} className="border rounded-4 p-3 mb-3 shadow-sm">
+                      <div className="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                          <h6 className="fw-bold mb-0">{member.name}</h6>
                           <small className="text-muted">{member.phone}</small>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge bg="success" pill>{member.invoicesPaid}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge bg={member.invoicesPending > 0 ? 'danger' : 'light'} text={member.invoicesPending > 0 ? 'white' : 'dark'} pill>
+                        </div>
+                        <Badge bg="success" pill>{member.invoicesPaid} Pagas</Badge>
+                      </div>
+                      
+                      <Row className="g-2 small">
+                        <Col xs={6}>
+                          <small className="text-muted d-block opacity-75 text-uppercase fw-bold" style={{fontSize: '10px'}}>Pendentes</small>
+                          <Badge bg={member.invoicesPending > 0 ? 'danger' : 'light'} text={member.invoicesPending > 0 ? 'white' : 'dark'} pill className="border">
                             {member.invoicesPending}
                           </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-center">
+                        </Col>
+                        <Col xs={6} className="text-end">
+                          <small className="text-muted d-block opacity-75 text-uppercase fw-bold" style={{fontSize: '10px'}}>Dívida Ativa</small>
                           <span className={Number(member.activeLoanBalance) > 0 ? 'text-danger fw-bold' : 'text-muted'}>
                             {Number(member.activeLoanBalance).toLocaleString()} MT
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-end">
-                           <small className="text-primary fw-bold clickable" style={{cursor: 'pointer'}}>Detalhes</small>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                        </Col>
+                      </Row>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Card>
 
