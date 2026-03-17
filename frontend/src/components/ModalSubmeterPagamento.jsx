@@ -18,7 +18,7 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
       if (invoice) {
         setFormData(prev => ({ ...prev, amount: invoice.amount }));
       } else if (loan) {
-        setFormData(prev => ({ ...prev, amount: '' })); // Let user choose amount for abatement
+        setFormData(prev => ({ ...prev, amount: loan.remainingBalance })); // Default to full balance
       } else if (group) {
         setFormData(prev => ({ ...prev, amount: group.contributionAmount }));
       }
@@ -77,15 +77,14 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
   const monthYearLabel = invoice ? new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1)) : '';
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} centered className="modal-mobile-fluid">
       <Modal.Header closeButton className="border-0 pb-0">
-        <Modal.Title className="fw-bold">
+        <Modal.Title className="fw-bold h5">
           {loan ? 'Abatimento de Empréstimo' : 'Informar Pagamento'}
-          {invoice && <span className="text-primary ms-2 small">({monthYearLabel})</span>}
-          {loan && <span className="text-primary ms-2 small">(Capital: {loan.amountRequested} MT)</span>}
+          {invoice && <span className="text-primary ms-1 small d-block d-md-inline" style={{fontSize: '0.8rem'}}>({monthYearLabel})</span>}
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-4">
+      <Modal.Body className="p-3 p-md-4">
         {group && (
           <div className="mb-4 bg-light p-3 rounded-4 border-0">
             <div className="d-flex justify-content-between align-items-center mb-2">
@@ -124,6 +123,7 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
           </div>
         )}
 
+          <Form onSubmit={handleSubmit} className="px-1">
           <Form.Group className="mb-3">
             <Form.Label className="text-uppercase small fw-bold opacity-75">Forma de Pagamento</Form.Label>
             <Form.Select
@@ -131,25 +131,26 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
               value={formData.paymentMethod}
               onChange={handleChange}
               required
-              className="py-3 shadow-none bg-light border-0 rounded-3"
+              className="py-3 shadow-none bg-light border-0 rounded-3 text-break-all"
+              style={{fontSize: '14px'}}
             >
               <option value="">Selecione como pagou...</option>
                {group?.paymentMethods?.map((m, i) => (
-                <option key={i} value={m.type}>{m.type} - {m.accountNumber} ({m.accountName})</option>
+                <option key={i} value={m.type}>{m.type} - {m.accountNumber}</option>
               ))}
               <option value="Outro">Outro</option>
             </Form.Select>
           </Form.Group>
 
-          <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
-            <Form.Label className="text-uppercase small fw-bold opacity-75">Valor Pago (MT)</Form.Label>
+            <Form.Label className="text-uppercase small fw-bold opacity-75">Valor a Pagar (MT)</Form.Label>
             <Form.Control
               type="number"
               name="amount"
               value={formData.amount}
               onChange={handleChange}
               required
+              placeholder="Digite o valor..."
               className="py-3 shadow-none bg-light border-0 rounded-3"
             />
           </Form.Group>
@@ -167,13 +168,14 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
           </Form.Group>
 
           <Form.Group className="mb-4">
-            <Form.Label className="text-uppercase small fw-bold opacity-75">Comprovativo (Foto/PDF/Doc)</Form.Label>
+            <Form.Label className="text-uppercase small fw-bold opacity-75">Comprovativo</Form.Label>
             <Form.Control
               type="file"
               name="proof"
               onChange={handleChange}
               accept="image/*,.pdf,.doc,.docx"
               className="py-2 shadow-none border-2 border-dashed rounded-3"
+              style={{fontSize: '12px'}}
             />
             <div className="d-flex justify-content-between mt-1">
                <small className="text-muted" style={{ fontSize: '11px' }}>Máx 5MB</small>
@@ -181,23 +183,10 @@ const ModalSubmeterPagamento = ({ show, onHide, group, onSuccess, invoice, loan 
             </div>
           </Form.Group>
 
-          <Form.Group className="mb-4">
-            <Form.Label className="text-uppercase small fw-bold opacity-75">Notas (Opcional)</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Ex: Pagamento referente ao mês de..."
-              className="py-3 shadow-none bg-light border-0 rounded-3"
-            />
-          </Form.Group>
+          {error && <Alert variant="danger" className="py-2 small border-0 rounded-3 mb-3">{error}</Alert>}
 
-          {error && <Alert variant="danger" className="py-2 small border-0 rounded-3">{error}</Alert>}
-
-          <Button variant="primary" type="submit" className="w-100 py-3 fw-bold rounded-3 shadow-sm" disabled={loading}>
-            {loading ? <Spinner animation="border" size="sm" /> : 'Confirmar Pagamento'}
+          <Button variant="primary" type="submit" className="w-100 py-3 fw-bold rounded-3 shadow-sm btn-lg" disabled={loading}>
+            {loading ? <Spinner animation="border" size="sm" /> : 'Confirmar'}
           </Button>
         </Form>
       </Modal.Body>

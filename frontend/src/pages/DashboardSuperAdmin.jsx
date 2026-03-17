@@ -156,25 +156,27 @@ const DashboardSuperAdmin = ({ onLogout }) => {
           </Col>
         </Row>
 
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1 className="h3 fw-bold mb-0">Gestão de Grupos</h1>
-          <Nav variant="pills" activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
-            <Nav.Item>
-              <Nav.Link eventKey="pending" className="rounded-pill px-4">Pendentes ({pendingGroups.length})</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link eventKey="upgrades" className="rounded-pill px-4 ms-2">Upgrades ({pendingUpgrades.length})</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link eventKey="all" className="rounded-pill px-4 ms-2">Todos os Grupos</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link eventKey="plans" className="rounded-pill px-4 ms-2">Planos</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link eventKey="methods" className="rounded-pill px-4 ms-2">Contas</Nav.Link>
-            </Nav.Item>
-          </Nav>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+          <h1 className="h3 fw-bold mb-0">Gestão Global</h1>
+          <div className="w-100 overflow-auto pb-2">
+            <Nav variant="pills" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="flex-nowrap">
+              <Nav.Item>
+                <Nav.Link eventKey="pending" className="rounded-pill px-3 py-2 small fw-bold">Pendentes ({pendingGroups.length})</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="upgrades" className="rounded-pill px-3 py-2 small fw-bold ms-2">Upgrades ({pendingUpgrades.length})</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="all" className="rounded-pill px-3 py-2 small fw-bold ms-2 text-nowrap">Todos Grupos</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="plans" className="rounded-pill px-3 py-2 small fw-bold ms-2">Planos</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="methods" className="rounded-pill px-3 py-2 small fw-bold ms-2">Contas</Nav.Link>
+              </Nav.Item>
+            </Nav>
+          </div>
         </div>
           {loading ? (
           <div className="text-center py-5"><Spinner animation="border" /></div>

@@ -16,7 +16,9 @@ const ModalListarFaturas = ({ show, onHide, group, onSelectInvoice }) => {
     setLoading(true);
     try {
       const res = await api.get(`/invoices/group/${group.id}`);
-      setInvoices(res.data);
+      // Show only unpaid invoices as requested
+      const unpaid = res.data.filter(i => i.status !== 'paid');
+      setInvoices(unpaid);
     } catch (err) {
       console.error('Erro ao buscar faturas:', err);
     } finally {
@@ -51,59 +53,59 @@ const ModalListarFaturas = ({ show, onHide, group, onSelectInvoice }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
+    <Modal show={show} onHide={onHide} size="lg" centered className="modal-mobile-fluid">
       <Modal.Header closeButton className="border-0">
-        <Modal.Title className="fw-bold">Faturas: {group?.name}</Modal.Title>
+        <Modal.Title className="fw-bold h5">Faturas: {group?.name}</Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-4 pt-0">
+      <Modal.Body className="p-3 p-md-4 pt-0">
         {loading ? (
           <div className="text-center py-5">
             <Spinner animation="border" variant="primary" />
           </div>
         ) : invoices.length === 0 ? (
           <Alert variant="info" className="border-0 rounded-4 shadow-sm text-center">
-            Nenhuma fatura encontrada para este grupo.
+            Nenhuma fatura encontrada.
           </Alert>
         ) : (
           <div className="table-responsive rounded-4 border overflow-hidden shadow-sm bg-white">
-            <Table hover className="mb-0 overflow-hidden">
+            <Table hover className="mb-0 overflow-hidden" style={{ minWidth: '600px' }}>
               <thead className="bg-light">
                 <tr className="small text-uppercase fw-bold text-muted">
-                  <th className="px-4 py-3">Referência</th>
-                  <th className="px-4 py-3">Vencimento</th>
-                  <th className="px-4 py-3">Valor</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-end">Ação</th>
+                  <th className="px-3 px-md-4 py-3">Mês</th>
+                  <th className="px-3 px-md-4 py-3">Vencimento</th>
+                  <th className="px-3 px-md-4 py-3">Valor</th>
+                  <th className="px-3 px-md-4 py-3">Status</th>
+                  <th className="px-3 px-md-4 py-3 text-end">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className="align-middle">
-                    <td className="px-4 py-3 fw-bold">
-                      {new Intl.DateTimeFormat('pt-PT', { month: 'long', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1))}
+                    <td className="px-3 px-md-4 py-3 fw-bold">
+                      {new Intl.DateTimeFormat('pt-PT', { month: 'short', year: 'numeric' }).format(new Date(invoice.year, invoice.month - 1))}
                     </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="px-3 px-md-4 py-3 text-muted" style={{fontSize: '0.85rem'}}>
                       {new Date(invoice.dueDate).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 fw-black text-primary">
+                    <td className="px-3 px-md-4 py-3 fw-black text-primary">
                       {invoice.amount} MT
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 px-md-4 py-3">
                       {getStatusBadge(invoice.status)}
                     </td>
-                    <td className="px-4 py-3 text-end">
+                    <td className="px-3 px-md-4 py-3 text-end">
                       {invoice.status !== 'paid' ? (
                         <Button 
                           variant="primary" 
                           size="sm" 
-                          className="fw-bold rounded-pill px-4"
+                          className="fw-bold rounded-pill px-3 px-md-4"
                           onClick={() => onSelectInvoice(invoice)}
                         >
                           Pagar
                         </Button>
                       ) : (
                         <div className="d-flex flex-column align-items-end">
-                          <span className="text-success small fw-bold mb-1">✓ Liquidado</span>
+                          <span className="text-success small fw-bold">Liquidado</span>
                           <Button 
                             variant="link" 
                             size="sm" 
@@ -113,13 +115,13 @@ const ModalListarFaturas = ({ show, onHide, group, onSelectInvoice }) => {
                                 const res = await api.get(`/payments/user/${JSON.parse(localStorage.getItem('user')).id}/group/${group.id}`);
                                 const payment = res.data.find(p => p.invoiceId === invoice.id && p.status === 'approved');
                                 if (payment) handleDownloadReceipt(payment.id);
-                                else alert('Pagamento não localizado para este recibo.');
+                                else alert('Pagamento não localizado.');
                               } catch (e) {
                                 alert('Erro ao buscar recibo.');
                               }
                             }}
                           >
-                            Recibo PDF
+                            Recibo
                           </Button>
                         </div>
                       )}

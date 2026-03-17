@@ -304,7 +304,8 @@ exports.getNotifications = async (req, res) => {
             limit: 50
         });
 
-        console.log(`📡 [BOT-API] Encontradas ${notifications.length} notificações brutas.`);
+        console.log(`📡 [BOT-API] Encontradas ${notifications.length} notificações pendentes na base de dados.`);
+        notifications.forEach(n => console.log(`   - ID: ${n.id}, Tipo: ${n.type}, Destino: ${n.phone}, GrupoID: ${n.groupId || 'N/A'}`));
 
         const filtered = notifications.filter(n => {
             try {

@@ -15,11 +15,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Número de telefone inválido.' });
     }
 
-    const user = await User.create({ firstName, lastName, phone, password });
+    // Ensure phone has country code and is clean for WhatsApp
+    const cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+    const formattedPhone = cleanPhone.startsWith('258') ? cleanPhone : `258${cleanPhone}`;
 
-    // Ensure phone has country code for WhatsApp
-    const formattedPhone = phone.startsWith('258') ? phone : `258${phone}`;
-
+    console.log(`[AUTH] Criando WELCOME_MESSAGE para ${formattedPhone}`);
     await BotNotification.create({
       phone: formattedPhone,
       userId: user.id,
@@ -110,11 +110,11 @@ exports.requestReset = async (req, res) => {
     user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
 
-    console.log(`[PASSWORD RESET] Code for ${phone}: ${resetToken}`);
-    
-    // Ensure phone has country code for WhatsApp
-    const formattedPhone = phone.startsWith('258') ? phone : `258${phone}`;
+    // Ensure phone has country code and is clean for WhatsApp
+    const cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+    const formattedPhone = cleanPhone.startsWith('258') ? cleanPhone : `258${cleanPhone}`;
 
+    console.log(`[AUTH] Criando OTP_RESET para ${formattedPhone}`);
     // Queue OTP for WhatsApp
     await BotNotification.create({
       phone: formattedPhone,

@@ -201,35 +201,39 @@ const DashboardAdmin = ({ onLogout }) => {
       </Navbar>
 
       <Container>
-        <Row className="mb-4 align-items-center">
+        <Row className="mb-4 align-items-center g-3">
           <Col md>
-            <h1 className="h3 fw-bold text-dark mb-1">Painel do Gestor</h1>
-            <p className="text-muted small mb-0">Gerencie seus grupos e valide pagamentos.</p>
-            {subscription && (
-              <div className="mt-2">
-                <Badge bg={subscription.Plan?.name === 'Premium' ? 'warning' : subscription.Plan?.name === 'Básico' ? 'info' : 'secondary'} className="rounded-pill px-3 py-2 fw-bold text-dark">
-                  <i className="bi bi-star-fill me-2"></i> Plano {subscription.Plan?.name}
-                </Badge>
-                {subscription.Plan?.name === 'Grátis' && (
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="text-primary fw-bold text-decoration-none ms-2"
-                    onClick={() => { fetchAllPlans(); setShowPlansModal(true); }}
-                  >
-                    Fazer Upgrade 🚀
-                  </Button>
-                )}
+            <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 gap-md-3">
+              <div>
+                <h1 className="h3 fw-bold text-dark mb-1">Painel do Gestor</h1>
+                <p className="text-muted small mb-0">Gerencie seus grupos e valide pagamentos.</p>
               </div>
-            )}
+              {subscription && (
+                <div className="d-flex align-items-center flex-wrap gap-2">
+                  <Badge bg={subscription.Plan?.name === 'Premium' ? 'warning' : subscription.Plan?.name === 'Básico' ? 'info' : 'secondary'} className="rounded-pill px-3 py-2 fw-bold text-dark">
+                    <i className="bi bi-star-fill me-2"></i> {subscription.Plan?.name}
+                  </Badge>
+                  {subscription.Plan?.name === 'Grátis' && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="text-primary fw-bold text-decoration-none p-0"
+                      onClick={() => { fetchAllPlans(); setShowPlansModal(true); }}
+                    >
+                      Upgrade 🚀
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </Col>
-          <Col md="auto" className="d-flex gap-2">
+          <Col md="auto">
             <Button 
-              variant="outline-primary" 
-              className="fw-bold px-3 rounded-3"
+              variant="primary" 
+              className="fw-bold px-4 rounded-3 w-100"
               onClick={() => setShowCodeModal(true)}
             >
-              Gerar Código de Convite
+              Convidar Membro
             </Button>
           </Col>
         </Row>
@@ -244,23 +248,22 @@ const DashboardAdmin = ({ onLogout }) => {
              {userGroups.length === 0 ? (
                <p className="text-muted small mb-0">Você não tem grupos ativos para configurar. Aguarde a aprovação do Admin Supremo.</p>
              ) : (
-               <div className="table-responsive">
-                 <table className="table table-hover align-middle mb-0">
+                <div className="table-responsive rounded-3 border">
+                  <table className="table table-hover align-middle mb-0" style={{ minWidth: '800px' }}>
                     <thead className="table-light">
-                      <tr>
-                        <th className="border-0 small text-uppercase">Nome do Grupo</th>
-                        <th className="border-0 small text-uppercase">Contribuição</th>
-                        <th className="border-0 small text-uppercase">Frequência</th>
-                        <th className="border-0 small text-uppercase">Juros Recebidos</th>
-                        <th className="border-0 small text-uppercase">Juros a Receber</th>
-                        <th className="border-0 small text-uppercase text-center">Faturas</th>
-                        <th className="border-0 small text-uppercase text-end">Ação</th>
+                      <tr className="small text-uppercase fw-bold text-muted">
+                        <th className="border-0 px-4 py-3">Grupo</th>
+                        <th className="border-0 py-3">Contribuição</th>
+                        <th className="border-0 py-3">Frequência</th>
+                        <th className="border-0 py-3 text-success">Juros Rec.</th>
+                        <th className="border-0 py-3 text-warning">Juros Pend.</th>
+                        <th className="border-0 py-3 text-end px-4">Ação</th>
                       </tr>
                     </thead>
                     <tbody>
                       {userGroups.map(group => (
                         <tr key={group.id}>
-                          <td className="fw-bold">{group.name}</td>
+                          <td className="fw-bold px-4">{group.name}</td>
                           <td className="text-primary fw-bold">{group.contributionAmount} MT</td>
                           <td>
                             <Badge bg="light" text="dark" className="border">
@@ -268,70 +271,68 @@ const DashboardAdmin = ({ onLogout }) => {
                                group.contributionFrequency === 'weekly' ? 'Semanal' : 'Mensal'}
                             </Badge>
                            </td>
-                           <td>
-                              <span className="text-success fw-bold">
+                           <td className="fw-bold text-success">
                                 {Number(group.Loans?.filter(l => l.status === 'approved' || l.status === 'settled').reduce((sum, l) => {
                                   const totalInterest = Number(l.totalToRepay) - Number(l.amountRequested);
                                   const percentagePaid = (Number(l.totalToRepay) - Number(l.remainingBalance)) / Number(l.totalToRepay);
                                   return sum + (totalInterest * percentagePaid);
                                 }, 0)).toFixed(2)} MT
-                              </span>
                             </td>
-                            <td>
-                              <span className="text-warning fw-bold">
+                            <td className="fw-bold text-warning">
                                 {Number(group.Loans?.filter(l => l.status === 'approved' || l.status === 'settled').reduce((sum, l) => {
                                   const totalInterest = Number(l.totalToRepay) - Number(l.amountRequested);
                                   const percentagePending = Number(l.remainingBalance) / Number(l.totalToRepay);
                                   return sum + (totalInterest * percentagePending);
                                 }, 0)).toFixed(2)} MT
-                              </span>
                             </td>
-                           <td className="text-center">
-                              <div className="small text-muted italic">Automático</div>
-                           </td>
-                           <td className="text-end">
-                              <Button 
-                                variant="link" 
-                                className="p-0 fw-bold me-3" 
-                                onClick={() => {
-                                  setSelectedGroupForSettings(group);
-                                  setSettingsFormData({ 
-                                    contributionAmount: group.contributionAmount, 
-                                    contributionFrequency: group.contributionFrequency,
-                                    dueDay: group.dueDay || 5,
-                                    loanInterestRate: group.loanInterestRate || 10.00,
-                                    name: group.name,
-                                    paymentMethods: group.paymentMethods || [
-                                      { type: 'M-Pesa', accountName: '', accountNumber: '' },
-                                      { type: 'e-Mola', accountName: '', accountNumber: '' }
-                                    ],
-                                    generateNow: false
-                                  });
-                                  setShowSettingsModal(true);
-                                }}
-                              >
-                                Configurar
-                              </Button>
-                              <Button 
-                                variant="link" 
-                                className="p-0 fw-bold me-3 text-primary" 
-                                onClick={() => { setSelectedGroup(group); setShowInvoicesModal(true); }}
-                              >
-                                Faturas
-                              </Button>
-                              <Button 
-                                variant="link" 
-                                className="p-0 fw-bold text-info" 
-                                onClick={() => { setSelectedGroup(group); setShowReportModal(true); }}
-                              >
-                                Relatório
-                              </Button>
+                           <td className="text-end px-4">
+                              <div className="d-flex justify-content-end gap-2">
+                                <Button 
+                                  variant="link" 
+                                  size="sm"
+                                  className="p-0 fw-bold text-decoration-none" 
+                                  onClick={() => {
+                                    setSelectedGroupForSettings(group);
+                                    setSettingsFormData({ 
+                                      contributionAmount: group.contributionAmount, 
+                                      contributionFrequency: group.contributionFrequency,
+                                      dueDay: group.dueDay || 5,
+                                      loanInterestRate: group.loanInterestRate || 10.00,
+                                      name: group.name,
+                                      paymentMethods: group.paymentMethods || [
+                                        { type: 'M-Pesa', accountName: '', accountNumber: '' },
+                                        { type: 'e-Mola', accountName: '', accountNumber: '' }
+                                      ],
+                                      generateNow: false
+                                    });
+                                    setShowSettingsModal(true);
+                                  }}
+                                >
+                                  Configurar
+                                </Button>
+                                <Button 
+                                  variant="link" 
+                                  size="sm"
+                                  className="p-0 fw-bold text-primary text-decoration-none" 
+                                  onClick={() => { setSelectedGroup(group); setShowInvoicesModal(true); }}
+                                >
+                                  Faturas
+                                </Button>
+                                <Button 
+                                  variant="link" 
+                                  size="sm"
+                                  className="p-0 fw-bold text-info text-decoration-none" 
+                                  onClick={() => { setSelectedGroup(group); setShowReportModal(true); }}
+                                >
+                                  Relatório
+                                </Button>
+                              </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                 </table>
-               </div>
+                  </table>
+                </div>
              )}
           </Card.Body>
         </Card>

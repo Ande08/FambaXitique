@@ -146,44 +146,46 @@ const DashboardMembro = ({ onLogout }) => {
       <NavbarSimple onLogout={onLogout} btnText="Sair" />
 
       <Container className="py-4">
-        <Row className="mb-4 align-items-center">
-          <Col>
-            <div className="d-flex align-items-center gap-3">
-              <h1 className="h3 fw-bold text-dark mb-1">Meus Grupos</h1>
-              {subscription ? (
-                <Badge bg="success" className="rounded-pill px-3 py-2">
-                  Plano: {subscription.Plan?.name} 
-                  {subscription.endDate && ` (Até ${new Date(subscription.endDate).toLocaleDateString()})`}
-                </Badge>
-              ) : (
-                <Badge bg="secondary" className="rounded-pill px-3 py-2">Plano: Grátis</Badge>
-              )}
+        <Row className="mb-4 align-items-center g-3">
+          <Col md>
+            <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 gap-md-3">
+              <h1 className="h3 fw-bold text-dark mb-0">Meus Grupos</h1>
+              <div className="d-flex align-items-center gap-2">
+                {subscription ? (
+                  <Badge bg="success" className="rounded-pill px-3 py-2">
+                    {subscription.Plan?.name} 
+                  </Badge>
+                ) : (
+                  <Badge bg="secondary" className="rounded-pill px-3 py-2">Grátis</Badge>
+                )}
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-primary fw-bold p-0 text-decoration-none"
+                  onClick={() => setShowUpgradeModal(true)}
+                >
+                  Fazer Upgrade
+                </Button>
+              </div>
+            </div>
+          </Col>
+          <Col md="auto">
+            <div className="d-flex gap-2">
               <Button 
-                variant="link" 
-                size="sm" 
-                className="text-primary fw-bold p-0 text-decoration-none"
-                onClick={() => setShowUpgradeModal(true)}
+                  variant="outline-dark" 
+                  className="fw-bold px-3 rounded-3 flex-fill flex-md-grow-0"
+                  onClick={() => setShowCreateModal(true)}
               >
-                Fazer Upgrade
+                Criar Grupo
+              </Button>
+              <Button 
+                  variant="primary" 
+                  className="fw-bold px-4 rounded-3 shadow-sm flex-fill flex-md-grow-0"
+                  onClick={() => setShowJoinModal(true)}
+              >
+                Entrar
               </Button>
             </div>
-            <p className="text-muted small">Gerencie suas participações no xitique.</p>
-          </Col>
-          <Col xs="auto">
-            <Button 
-                variant="outline-dark" 
-                className="fw-bold px-3 rounded-3 me-2"
-                onClick={() => setShowCreateModal(true)}
-            >
-              Criar Grupo
-            </Button>
-            <Button 
-                variant="primary" 
-                className="fw-bold px-4 rounded-3 shadow-sm"
-                onClick={() => setShowJoinModal(true)}
-            >
-              Entrar em Grupo
-            </Button>
           </Col>
         </Row>
 
@@ -267,11 +269,11 @@ const DashboardMembro = ({ onLogout }) => {
                           })()}
                         </div>
 
-                        <div className="d-flex flex-wrap gap-2 pt-2">
+                        <div className="d-grid grid-cols-2 gap-2 pt-2">
                           <Button 
                             variant="light" 
                             size="sm" 
-                            className="fw-bold rounded-pill px-3 flex-fill"
+                            className="fw-bold rounded-pill px-2"
                             disabled={group.status === 'pending'}
                             onClick={() => { 
                               setSelectedGroup(group); 
@@ -287,7 +289,7 @@ const DashboardMembro = ({ onLogout }) => {
                               <Button 
                                 variant="primary" 
                                 size="sm" 
-                                className="fw-bold rounded-pill px-3 flex-fill"
+                                className="fw-bold rounded-pill px-2"
                                 onClick={() => { setSelectedGroup(group); setShowInvoicesModal(true); }}
                               >
                                 Pagar
@@ -295,7 +297,7 @@ const DashboardMembro = ({ onLogout }) => {
                               <Button 
                                 variant="outline-primary" 
                                 size="sm" 
-                                className="fw-bold rounded-pill px-3 flex-fill"
+                                className="fw-bold rounded-pill px-2"
                                 onClick={() => { setSelectedGroup(group); setShowLoanRequestModal(true); }}
                               >
                                 Crédito
@@ -303,16 +305,16 @@ const DashboardMembro = ({ onLogout }) => {
                               <Button 
                                 variant="outline-info" 
                                 size="sm" 
-                                className="fw-bold rounded-pill px-3 flex-fill"
+                                className="fw-bold rounded-pill px-2"
                                 onClick={() => { setSelectedGroup(group); setShowReportModal(true); }}
                               >
-                                Relatório
+                                Relatórios
                               </Button>
                               {group.Loans?.some(l => l.status === 'pending') && (
                                 <Button 
                                   variant="warning" 
                                   size="sm" 
-                                  className="fw-bold rounded-pill px-3 flex-fill position-relative"
+                                  className="fw-bold rounded-pill px-2 position-relative"
                                   onClick={() => { setSelectedGroup(group); setShowVotingModal(true); }}
                                 >
                                   Votar 

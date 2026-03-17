@@ -7,7 +7,6 @@ async function startNotificationPoller(sock) {
 
     setInterval(async () => {
         try {
-            console.log(`[POLLER] Verificando notificações pendentes...`);
             const response = await botApi.getNotifications();
             const notifications = response.data;
 
@@ -20,13 +19,14 @@ async function startNotificationPoller(sock) {
                         console.log(`[POLLER] Enviando "${note.type}" para ${jid}...`);
                         
                         await sock.sendMessage(jid, { text: note.content });
-                        console.log(`✅ [POLLER] Mensagem enviada para ${jid}. Notificando backend...`);
+                        console.log(`✅ [POLLER] Mensagem enviada para ${jid}.`);
                         
                         // Mark as sent in backend
                         await botApi.markNotificationSent(note.id);
-                        console.log(`✅ [POLLER] Notificação ${note.id} marcada como enviada no backend.`);
                     } catch (err) {
                         console.error(`❌ [POLLER] Erro ao processar notificação ${note.id}:`, err.message);
+                        // If it's a connection issue, we might want to break the loop
+                        if (err.message.includes('closed')) break;
                     }
                 }
             } else {
