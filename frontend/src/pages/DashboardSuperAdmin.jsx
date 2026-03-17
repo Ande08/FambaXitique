@@ -18,6 +18,7 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const [planForm, setPlanForm] = useState({ monthlyPrice: 0, groupLimit: 1, botEnabled: false, description: '' });
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedUpgrade, setSelectedUpgrade] = useState(null);
+  const [subscriptions, setSubscriptions] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -26,13 +27,14 @@ const DashboardSuperAdmin = ({ onLogout }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [pendingRes, allRes, statsRes, plansRes, upgradesRes, methodsRes] = await Promise.all([
+      const [pendingRes, allRes, statsRes, plansRes, upgradesRes, methodsRes, subsRes] = await Promise.all([
         api.get('/groups/pending-approval'),
         api.get('/groups/admin/all'),
         api.get('/groups/admin/stats'),
         api.get('/plans'),
         api.get('/plans/pending-upgrades'),
-        api.get('/plans/payment-methods')
+        api.get('/plans/payment-methods'),
+        api.get('/plans/subscriptions')
       ]);
       setPendingGroups(pendingRes.data);
       setAllGroups(allRes.data);
@@ -40,6 +42,7 @@ const DashboardSuperAdmin = ({ onLogout }) => {
       setPlans(plansRes.data);
       setPendingUpgrades(upgradesRes.data);
       setPaymentMethods(methodsRes.data);
+      setSubscriptions(subsRes.data);
     } catch (err) {
       console.error('Erro ao buscar dados do Admin:', err);
     } finally {
@@ -174,6 +177,9 @@ const DashboardSuperAdmin = ({ onLogout }) => {
               </Nav.Item>
               <Nav.Item>
                 <Nav.Link eventKey="methods" className="rounded-pill px-3 py-2 small fw-bold ms-2">Contas</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="subscriptions" className="rounded-pill px-3 py-2 small fw-bold ms-2">Subscrições</Nav.Link>
               </Nav.Item>
             </Nav>
           </div>
@@ -339,6 +345,55 @@ const DashboardSuperAdmin = ({ onLogout }) => {
                   ))}
                 </Row>
               </div>
+            )}
+
+            {activeTab === 'subscriptions' && (
+              <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+                <Card.Body className="p-0">
+                  <Table responsive hover className="mb-0 align-middle">
+                    <thead className="bg-light">
+                      <tr>
+                        <th className="px-4 py-3 border-0">Usuário</th>
+                        <th className="py-3 border-0">Plano</th>
+                        <th className="py-3 border-0 text-center">Status</th>
+                        <th className="py-3 border-0">Vencimento</th>
+                        <th className="py-3 text-end px-4 border-0">Desde</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subscriptions.length === 0 ? (
+                        <tr><td colSpan="5" className="text-center py-5 text-muted">Nenhuma subscrição encontrada.</td></tr>
+                      ) : (
+                        subscriptions.map(sub => (
+                          <tr key={sub.id}>
+                            <td className="px-4 py-3">
+                              <span className="fw-bold">{sub.User?.firstName} {sub.User?.lastName}</span>
+                              <br/><small className="text-muted">{sub.User?.phone}</small>
+                            </td>
+                            <td className="py-3">
+                              <Badge bg={sub.Plan?.name === 'Grátis' ? 'secondary' : 'primary'}>
+                                {sub.Plan?.name}
+                              </Badge>
+                            </td>
+                            <td className="py-3 text-center">
+                              <Badge bg={sub.status === 'active' ? 'success' : 'danger'} className="rounded-pill">
+                                {sub.status === 'active' ? 'Ativo' : 'Expirado'}
+                              </Badge>
+                            </td>
+                            <td className="py-3">
+                              {new Date(sub.endDate).toLocaleDateString()}
+                              {new Date(sub.endDate) < new Date() && <i className="bi bi-exclamation-triangle-fill text-danger ms-2" title="Expirado"></i>}
+                            </td>
+                            <td className="py-3 text-end px-4 text-muted small">
+                              {new Date(sub.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </Card.Body>
+              </Card>
             )}
 
             {(activeTab === 'pending' || activeTab === 'all') && (

@@ -124,3 +124,19 @@ exports.approveUpgrade = async (req, res) => {
         res.status(500).json({ message: 'Erro ao aprovar upgrade', error: error.message });
     }
 };
+
+exports.getAllSubscriptions = async (req, res) => {
+    try {
+        if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ message: 'Acesso negado' });
+        const subscriptions = await Subscription.findAll({
+            include: [
+                { model: User, as: 'User', attributes: ['firstName', 'lastName', 'phone'] },
+                { model: Plan, as: 'Plan' }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(subscriptions);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar subscrições', error: error.message });
+    }
+};

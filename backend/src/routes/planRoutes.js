@@ -28,5 +28,6 @@ router.post('/payment-methods', authMiddleware, subscriptionController.createAdm
 router.post('/upgrade', authMiddleware, upload.single('proof'), subscriptionController.requestUpgrade);
 router.get('/pending-upgrades', authMiddleware, subscriptionController.getPendingUpgrades);
 router.post('/approve-upgrade/:id', authMiddleware, subscriptionController.approveUpgrade);
+router.get('/subscriptions', authMiddleware, subscriptionController.getAllSubscriptions);
 
 module.exports = router;
