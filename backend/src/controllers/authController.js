@@ -19,6 +19,9 @@ exports.register = async (req, res) => {
     const cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
     const formattedPhone = cleanPhone.startsWith('258') ? cleanPhone : `258${cleanPhone}`;
 
+    // Create the user first!
+    const user = await User.create({ firstName, lastName, phone: formattedPhone, password });
+
     console.log(`[AUTH] Criando WELCOME_MESSAGE para ${formattedPhone}`);
     await BotNotification.create({
       phone: formattedPhone,
