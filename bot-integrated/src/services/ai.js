@@ -17,7 +17,7 @@ REGRA DE OURO DOS BOTS:
 `;
 
 const AI_PROVIDER = process.env.AI_PROVIDER || 'gemini';
-const configPath = path.join(__dirname, 'bot-config.json');
+const configPath = path.join(__dirname, '../../bot-config.json');
 
 function getBotConfig() {
     try {

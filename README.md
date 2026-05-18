@@ -39,8 +39,29 @@ FambaXitique é uma aplicação web moderna e responsiva concebida para digitali
 - **Base de Dados**: MySQL.
 - **Autenticação**: JWT (JSON Web Tokens).
 
-## 🏁 Como Executar
+## 📂 Estrutura Otimizada do Sistema
 
+O projeto FambaXitique está estruturado em 3 módulos principais para fácil compreensão e manutenção:
+
+1. **`frontend/`**: Onde reside a interface de utilizador construída em React + Vite.
+   - `/src/pages` - Ecrãs inteiros da interface.
+   - `/src/components` - Componentes reutilizáveis (e.g. Modais).
+   - `/src/api` - Configuração e serviços via Axios.
+
+2. **`backend/`**: A lógica de servidor e API construída em Node.js com Express e Sequelize.
+   - `/src/controllers` - Lógica das rotas HTTP.
+   - `/src/routes` - Definições dos endpoints da API.
+   - `/src/models` - Modelos da base de dados (MySQL).
+   - `/src/services` - Lógica reutilizável isolada (e.g. recibos, notificações).
+   - `/scripts` - Ferramentas de desenvolvimento e testes.
+
+3. **`bot-integrated/`**: O sistema responsável pelas notificações e automação no WhatsApp (Baileys).
+   - `/src/commands` - Lógica para respostas às mensagens de WhatsApp.
+   - `/src/services` - Conexão ao WhatsApp e uso de APIs externas (e.g. OpenAI).
+
+---
+
+## 🏁 Como Executar
 ### Pré-requisitos
 - Node.js instalado.
 - MySQL Server ativo.

@@ -1,17 +1,17 @@
-const botApi = require('./api');
-const { getAIResponse } = require('./ai');
+const botApi = require('../services/api');
+const { getAIResponse } = require('../services/ai');
 const fs = require('fs');
 const path = require('path');
 
 const sessions = new Map(); // sender -> { step, userData, groupId, groupName, history: [], isAdmin: false }
-const configPath = path.join(__dirname, 'bot-config.json');
+const configPath = path.join(__dirname, '../../bot-config.json');
 
 async function handleMessage(sock, msg) {
     const remoteJid = msg.key.remoteJid;
     const senderJid = msg.key.participant || remoteJid;
     let phone = senderJid.split('@')[0].split(':')[0]; // Extracts digits
 
-    // Fix for LID: Use senderPn (real phone) if available when ID is an LID
+    // Correção para LID: Usar senderPn (telefone real) se disponível quando ID for LID
     if (senderJid.endsWith('@lid') && msg.key.senderPn) {
         phone = msg.key.senderPn.split('@')[0];
     }
@@ -28,8 +28,8 @@ async function handleMessage(sock, msg) {
         sessions.set(senderJid, session);
     }
 
-    // Centralized Identification at the beginning
-    if (!session.isRegistered) { // Support retry if not registered or undefined
+    // Identificação Centralizada no Início
+    if (!session.isRegistered) { // Suporta tentativa de novo se não registado ou indefinido
         try {
             console.log(`[IDENTIFY] Buscando dados de ${phone} (JID: ${senderJid})...`);
             const resp = await botApi.getUserInfo(phone);
@@ -46,7 +46,7 @@ async function handleMessage(sock, msg) {
 
     const isSuper = session.isAdmin;
 
-    // --- KEYWORD NAVIGATION (AUTO-STEP) ---
+    // --- NAVEGAÇÃO POR PALAVRA-CHAVE (AUTO-STEP) ---
     const lowerText = text.toLowerCase();
     if (session.isRegistered && !session.step) {
         if (lowerText.includes('meus grupos') || (lowerText.includes('ver') && lowerText.includes('grupo'))) {
@@ -153,7 +153,7 @@ async function handleMessage(sock, msg) {
         await sock.sendMessage(remoteJid, { text: "⚙️ Iniciando atualização via `update.sh`... Isso pode demorar alguns segundos." });
 
         const { exec } = require('child_process');
-        const updatePath = path.join(__dirname, '..', 'update.sh');
+        const updatePath = path.join(__dirname, '../../../update.sh');
 
         exec(`sh "${updatePath}"`, (error, stdout, stderr) => {
             if (error) {
@@ -165,7 +165,7 @@ async function handleMessage(sock, msg) {
         return;
     }
 
-    // --- MAIN INTERACTION FLOW (DASHBOARD) ---
+    // --- FLUXO DE INTERAÇÃO PRINCIPAL (DASHBOARD) ---
 
     const showDashboard = async () => {
         let dash = `🌟 *DASHBOARD FAMBAXITIQUE* 🌟\n\n`;
@@ -182,7 +182,7 @@ async function handleMessage(sock, msg) {
         return sock.sendMessage(remoteJid, { text: dash });
     };
 
-    // Special Trigger for Menu
+    // Gatilho Especial para o Menu
     if (text.toLowerCase().includes('/menu') || text.toLowerCase().includes('/começar') || text.toLowerCase().includes('/start')) {
         console.log(`[CMD] Dashboard para ${remoteJid}`);
         if (!session.isRegistered) {
@@ -245,7 +245,7 @@ async function handleMessage(sock, msg) {
                 try {
                     const statusResp = await botApi.getStatus(phone);
                     const loans = statusResp.data.activeLoans || [];
-                    // Filter loans by botEnabled if needed, but for now let's show all and check group in next step
+                    // Filtrar empréstimos por botEnabled se necessário, por enquanto mostramos todos e verificamos no grupo no próximo passo
                     if (loans.length === 0) {
                         return sock.sendMessage(remoteJid, { text: "💰 Você não tem empréstimos ativos no momento." });
                     }
@@ -291,7 +291,7 @@ async function handleMessage(sock, msg) {
         }
     }
 
-    // PAYMENT FLOW HANDLERS
+    // TRATADORES DO FLUXO DE PAGAMENTOS
     if (session.step === 'select_invoice_to_pay' || session.step === 'select_loan_to_pay') {
         if (text === '0') return showDashboard();
         const idx = parseInt(text) - 1;
@@ -311,13 +311,13 @@ async function handleMessage(sock, msg) {
         };
 
         try {
-            // Get group details to show payment methods
-            const userResp = await botApi.getUserInfo(phone); // Re-fetch or use session to get group methods
+            // Obter detalhes do grupo para mostrar métodos de pagamento
+            const userResp = await botApi.getUserInfo(phone); // Refetch ou usar sessão para obter métodos do grupo
             const groupDetails = userResp.data.groups.find(g => g.id === session.paymentData.groupId);
             
-            // We need to fetch the FULL group object to get paymentMethods JSON
-            // Let's add an endpoint or reuse getUserInfo if it has it. 
-            // For now, let's assume we have them or show default.
+            // Precisamos buscar o objeto de grupo COMPLETO para obter json de métodos
+            // Vamos adicionar endpoint ou reusar getUserInfo se já o tem. 
+            // Por agora, assumimos que temos ou mostramos erro padrao.
             
             let pmText = `💳 *MÉTODOS DE PAGAMENTO - ${session.paymentData.groupName}*\n\n`;
             pmText += `Escolha como deseja pagar o valor de *${session.paymentData.amount} MT*:\n\n`;
@@ -467,7 +467,7 @@ async function handleMessage(sock, msg) {
         }
     }
 
-    // Processing Payments/Loans
+    // Processamento de Pagamentos/Empréstimos
     if (session.step === 'await_payment') {
         const amountMatch = text.match(/(\d+)/);
         const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
@@ -507,7 +507,7 @@ async function handleMessage(sock, msg) {
         return;
     }
 
-    // --- AI FALLBACK ---
+    // --- RESPOSTA DE IA (FALLBACK) ---
     try {
         await sock.sendPresenceUpdate('composing', remoteJid);
         

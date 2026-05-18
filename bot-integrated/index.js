@@ -1,12 +1,12 @@
-const connectToWhatsApp = require('./whatsapp');
-const handleMessage = require('./commands');
-const startNotificationPoller = require('./notifications');
+const connectToWhatsApp = require('./src/services/whatsapp');
+const handleMessage = require('./src/commands/commands');
+const startNotificationPoller = require('./src/services/notifications');
 require('dotenv').config();
 
 console.log('🚀 Iniciando FambaXitique Bot Integrado...');
 
 connectToWhatsApp(
-    // On Message
+    // Ao receber mensagem
     async (sock, msg) => {
         try {
             await handleMessage(sock, msg);
@@ -14,9 +14,9 @@ connectToWhatsApp(
             console.error('💥 Erro ao processar mensagem:', err.message);
         }
     },
-    // On Open
+    // Ao abrir a conexão
     (sock) => {
-        // Start the notification poller service
+        // Iniciar o serviço de sondagem de notificações
         startNotificationPoller(sock);
     }
 ).catch(err => {
