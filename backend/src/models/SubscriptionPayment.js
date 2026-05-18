@@ -20,7 +20,7 @@ const SubscriptionPayment = sequelize.define('SubscriptionPayment', {
     allowNull: false
   },
   paymentMethodDetails: {
-    type: DataTypes.TEXT, // Snaphot of the payment method used
+    type: DataTypes.TEXT, // Fotografia/Cópia do método de pagamento usado
     allowNull: true
   },
   transactionId: {

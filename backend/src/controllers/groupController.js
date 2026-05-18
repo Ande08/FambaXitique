@@ -5,7 +5,7 @@ exports.createGroup = async (req, res) => {
   try {
     const { name, description } = req.body;
 
-    // Check Plan Limits
+    // Verificar Limites do Plano
     const subscription = await Subscription.findOne({
       where: { userId: req.user.id, status: 'active' },
       include: [{ model: Plan, as: 'Plan' }]
@@ -21,7 +21,7 @@ exports.createGroup = async (req, res) => {
         });
       }
     } else {
-        // Default Grátis limit if no subscription found
+        // Limite gratuito por defeito se não foi encontrada assinatura
         if (currentGroupsCount >= 1) {
             return res.status(403).json({ message: 'Limite de 1 grupo gratuito atingido. Torne-se Premium para criar mais!' });
         }
@@ -33,7 +33,7 @@ exports.createGroup = async (req, res) => {
       adminId: req.user.id
     });
 
-    // Automatically make creator the ADMIN
+    // Automaticamente fazer do criador o ADMIN
     await Membership.create({
       UserId: req.user.id,
       GroupId: group.id,
@@ -48,8 +48,8 @@ exports.createGroup = async (req, res) => {
 
 exports.getGroups = async (req, res) => {
   try {
-    // Both Regular users and Super Admins see ONLY groups they belong to in the dashboard views
-    // ( Sequelize with where in include performs an INNER JOIN )
+    // Tanto Utilizadores Regulares como Super Admins veem APENAS grupos a que pertencem nas visualizações do dashboard
+    // ( Sequelize com where no include executa um INNER JOIN )
     const groups = await Group.findAll({
       include: [
         {
@@ -166,7 +166,7 @@ exports.generateJoinCode = async (req, res) => {
 
     const code = crypto.randomInt(100000, 999999).toString();
     
-    // Set expiry to 24 hours from now
+    // Definir validade para 24 horas a partir de agora
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -200,7 +200,7 @@ exports.joinGroupByCode = async (req, res) => {
       return res.status(400).json({ message: 'Code has expired' });
     }
 
-    // Check if user is already a member
+    // Verificar se o utilizador já é membro
     const existingMember = await Membership.findOne({
       where: { UserId: req.user.id, GroupId: validation.groupId }
     });
@@ -209,7 +209,7 @@ exports.joinGroupByCode = async (req, res) => {
       return res.status(400).json({ message: 'You are already a member of this group' });
     }
 
-    // Join as MEMBER
+    // Juntar-se como MEMBRO
     await Membership.create({
       UserId: req.user.id,
       GroupId: validation.groupId,
@@ -234,12 +234,12 @@ exports.updateGroupSettings = async (req, res) => {
     const group = await Group.findByPk(id);
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
-    // Ensure requester is the admin
+    // Garantir que o solicitante é o administrador
     if (group.adminId !== req.user.id) {
       return res.status(403).json({ message: 'Only the group admin can update settings' });
     }
 
-    // Ensure group is active
+    // Garantir que o grupo está ativo
     if (group.status !== 'active') {
       return res.status(400).json({ message: 'Group must be approved before configuring settings' });
     }
@@ -253,7 +253,7 @@ exports.updateGroupSettings = async (req, res) => {
     
     await group.save();
 
-    // Trigger immediate generation if requested
+    // Despoletar a geração imediatamente se solicitado
     if (generateNow) {
       const { automateInvoiceGeneration } = require('./invoiceController');
       // We can run this specifically for this group or just trigger the global check

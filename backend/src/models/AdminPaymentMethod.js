@@ -8,7 +8,7 @@ const AdminPaymentMethod = sequelize.define('AdminPaymentMethod', {
     primaryKey: true
   },
   type: {
-    type: DataTypes.STRING, // e.g., 'M-Pesa', 'E-Mola', 'Bank'
+    type: DataTypes.STRING, // ex., 'M-Pesa', 'E-Mola', 'Bank'
     allowNull: false
   },
   accountName: {

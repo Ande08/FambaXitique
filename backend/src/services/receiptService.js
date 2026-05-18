@@ -18,11 +18,11 @@ exports.generateReceipt = async (payment, user, group) => {
             const stream = fs.createWriteStream(receiptPath);
             doc.pipe(stream);
 
-            // Header
+            // Cabeçalho
             doc.fontSize(20).text('FambaXitique', { align: 'center' }).moveDown();
             doc.fontSize(14).text('RECIBO DE PAGAMENTO', { align: 'center', underline: true }).moveDown(2);
 
-            // Transaction Info
+            // Informação da Transação
             doc.fontSize(10).font('Helvetica-Bold').text('DETALHES DA TRANSAÇÃO');
             doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke().moveDown(0.5);
             
@@ -32,11 +32,11 @@ exports.generateReceipt = async (payment, user, group) => {
             doc.text(`Membro: ${user.firstName} ${user.lastName}`);
             doc.moveDown();
 
-            // Financial Info
+            // Informação Financeira
             doc.fontSize(12).font('Helvetica-Bold').text(`VALOR PAGO: ${payment.amount} MT`, { color: '#28a745' });
             doc.moveDown();
 
-            // Context
+            // Contexto
             let type = 'Contribuição';
             if (payment.loanId) type = 'Amortização de Empréstimo';
             
@@ -53,7 +53,7 @@ exports.generateReceipt = async (payment, user, group) => {
                 doc.font('Helvetica').text(payment.notes);
             }
 
-            // Footer
+            // Rodapé
             doc.moveDown(4);
             doc.fontSize(8).fillColor('#6c757d').text('Este é um recibo gerado automaticamente pelo sistema FambaXitique.', { align: 'center' });
             doc.text(`Validado digitalmente em ${new Date().toLocaleDateString()}`, { align: 'center' });

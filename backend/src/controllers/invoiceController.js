@@ -6,7 +6,7 @@ exports.getMemberInvoices = async (req, res) => {
         const { userId, groupId } = req.params;
         const requesterId = req.user.id;
 
-        // Check if requester is at least a member of the group
+        // Verificar se o solicitante é pelo menos membro do grupo
         const membership = await Membership.findOne({
             where: { userId: requesterId, groupId }
         });
@@ -15,7 +15,7 @@ exports.getMemberInvoices = async (req, res) => {
             return res.status(403).json({ message: 'Não autorizado a ver faturas neste grupo.' });
         }
 
-        // Auto-generate for the current month if not exists
+        // Auto-gerar para o mês atual se não existir
         await generateInvoicesForUserInGroup(userId, groupId);
 
         const invoices = await Invoice.findAll({
@@ -35,7 +35,7 @@ exports.getUserInvoices = async (req, res) => {
         const { groupId } = req.params;
         const userId = req.user.id;
 
-        // Auto-generate for the current month if not exists
+        // Auto-gerar para o mês atual se não existir
         await generateInvoicesForUserInGroup(userId, groupId);
 
         const invoices = await Invoice.findAll({
@@ -132,7 +132,7 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
         week = now.getDate(); 
     }
 
-    // Check if invoice already exists for this specific period
+    // Verificar se a fatura já existe para este período específico
     const existing = await Invoice.findOne({
         where: { 
             userId, 
@@ -155,14 +155,14 @@ async function generateInvoicesForUserInGroup(userId, groupId) {
             groupId
         });
 
-        // Queue WhatsApp Notification for new invoice
+        // Colocar Notificação de WhatsApp na fila para nova fatura
         try {
             const user = await User.findByPk(userId);
             if (user) {
                 const monthName = new Intl.DateTimeFormat('pt-PT', { month: 'long' }).format(new Date(year, month - 1));
                 const formattedDate = new Date(dueDate).toLocaleDateString('pt-PT');
                 
-                // Ensure phone has country code for WhatsApp
+                // Assegurar que o telemóvel tem indicativo de país para o WhatsApp
                 const formattedPhone = user.phone.startsWith('258') ? user.phone : `258${user.phone}`;
 
                 await BotNotification.create({

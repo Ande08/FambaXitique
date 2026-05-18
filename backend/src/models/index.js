@@ -14,11 +14,11 @@ const SubscriptionPayment = require('./SubscriptionPayment');
 const MemberRemoval = require('./MemberRemoval');
 const RemovalVote = require('./RemovalVote');
 
-// Relationships
+// Relacionamentos
 User.belongsToMany(Group, { through: Membership, as: 'Groups' });
 Group.belongsToMany(User, { through: Membership, as: 'Members' });
 
-// Group Creator association
+// Associação Criador de Grupo
 Group.belongsTo(User, { as: 'Creator', foreignKey: 'adminId' });
 User.hasMany(Group, { as: 'CreatedGroups', foreignKey: 'adminId' });
 
@@ -28,7 +28,7 @@ Payment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 Group.hasMany(Payment, { as: 'Payments', foreignKey: 'groupId' });
 Payment.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
 
-// Invoice associations
+// Associações de Fatura
 User.hasMany(Invoice, { as: 'Invoices', foreignKey: 'userId' });
 Invoice.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
@@ -47,42 +47,42 @@ Loan.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 Group.hasMany(Loan, { as: 'Loans', foreignKey: 'groupId' });
 Loan.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
 
-// Loan Voting associations
+// Associações de Votação de Empréstimo
 Loan.hasMany(LoanVote, { as: 'Votes', foreignKey: 'loanId' });
 LoanVote.belongsTo(Loan, { as: 'Loan', foreignKey: 'loanId' });
 
 User.hasMany(LoanVote, { as: 'LoanVotes', foreignKey: 'userId' });
 LoanVote.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
-// Bot Notifications
+// Notificações do Bot
 User.hasMany(BotNotification, { as: 'Notifications', foreignKey: 'userId' });
 BotNotification.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Group.hasMany(BotNotification, { as: 'Notifications', foreignKey: 'groupId' });
 BotNotification.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
 
-// Validation Codes
+// Códigos de Validação
 User.hasMany(ValidationCode, { as: 'ValidationCodes', foreignKey: 'userId' });
 ValidationCode.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Group.hasMany(ValidationCode, { as: 'ValidationCodes', foreignKey: 'groupId' });
 ValidationCode.belongsTo(Group, { as: 'Group', foreignKey: 'groupId' });
 
-// Subscriptions
+// Subscrições
 User.hasMany(Subscription, { as: 'Subscriptions', foreignKey: 'userId' });
 Subscription.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Plan.hasMany(Subscription, { as: 'Subscriptions', foreignKey: 'planId' });
 Subscription.belongsTo(Plan, { as: 'Plan', foreignKey: 'planId' });
 
-// Subscription Payment associations
+// Associações de Pagamento de Subscrição
 User.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'userId' });
 SubscriptionPayment.belongsTo(User, { as: 'User', foreignKey: 'userId' });
 
 Plan.hasMany(SubscriptionPayment, { as: 'SubscriptionPayments', foreignKey: 'planId' });
 SubscriptionPayment.belongsTo(Plan, { foreignKey: 'planId' });
 
-// Member Removal & Voting
+// Remoção de Membro e Votação
 Group.hasMany(MemberRemoval, { foreignKey: 'groupId' });
 MemberRemoval.belongsTo(Group, { foreignKey: 'groupId' });
 

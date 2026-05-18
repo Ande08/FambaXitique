@@ -85,17 +85,17 @@ exports.approveUpgrade = async (req, res) => {
         });
 
         if (!created) {
-            // Extend existing subscription or update plan
+            // Prolongar subscrição existente ou atualizar plano
             const currentEnd = new Date(subscription.endDate).getTime();
             const isSamePlan = subscription.planId === payment.planId;
             const oneYearFromNow = Date.now() + (365 * 24 * 60 * 60 * 1000);
             
-            // If it's a DIFFERENT plan OR if the current plan is the "Grátis" plan (very far in the future expiry)
-            // we ALWAYS start the 30 days from NOW.
+            // Se for um plano DIFERENTE OU se o plano atual for o \"Grátis\"
+            // NÓS SEMPRE iniciamos os 30 dias a partir de AGORA.
             let startBase = Date.now();
             if (isSamePlan && currentEnd < oneYearFromNow) {
-                // For paid extensions, we add to the current end date if it's in the future,
-                // otherwise start from now.
+                // Para extensões pagas, adicionamos à data de término atual se estiver no futuro,
+                // caso contrário, começa a partir de agora.
                 startBase = Math.max(currentEnd, Date.now());
             }
 

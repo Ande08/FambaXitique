@@ -47,7 +47,7 @@ const Group = sequelize.define('Group', {
   dueDay: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 5, // Default to day 5 of the month
+    defaultValue: 5, // Por defeito no dia 5 do mês
     validate: {
       min: 0,
       max: 31

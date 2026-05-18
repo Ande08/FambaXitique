@@ -12,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
     
-    // Fetch user from DB to ensure we have the latest role/data
+    // Buscar o utilizador na base de dados para garantir o cargo atualizado
     const user = await User.findByPk(decoded.id);
     if (!user) {
       return res.status(401).json({ message: 'User no longer exists' });

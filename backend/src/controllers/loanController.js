@@ -8,12 +8,12 @@ exports.requestLoan = async (req, res) => {
         const group = await Group.findByPk(groupId);
         if (!group) return res.status(404).json({ message: 'Grupo não encontrado.' });
 
-        // Enforce Borrowing Limit
+        // Impor Limite de Empréstimo
         if (parseFloat(amountRequested) > parseFloat(group.balance)) {
             return res.status(400).json({ message: `O grupo só tem ${group.balance} MT disponível em caixa.` });
         }
 
-        // Use group-specific interest rate
+        // Usar taxa de juro específica do grupo
         const interestRate = parseFloat(group.loanInterestRate) || 10.00; 
         const totalToRepay = parseFloat(amountRequested) * (1 + interestRate / 100);
 
@@ -36,7 +36,7 @@ exports.requestLoan = async (req, res) => {
 
 exports.getPendingLoans = async (req, res) => {
     try {
-        // Find groups where user is ADMIN
+        // Encontrar grupos onde o utilizador é ADMIN
         const memberships = await Membership.findAll({
             where: { UserId: req.user.id, role: 'ADMIN' }
         });
@@ -76,13 +76,13 @@ exports.approveLoan = async (req, res) => {
         });
         if (!loan) return res.status(404).json({ message: 'Empréstimo não encontrado.' });
 
-        // Authorization
+        // Autorização
         if (loan.Group.adminId !== req.user.id) {
             return res.status(403).json({ message: 'Apenas o administrador do grupo pode aprovar empréstimos.' });
         }
 
         if (action === 'approve') {
-            // Check if all members have voted
+            // Verificar se todos os membros votaram
             const memberCount = await Membership.count({ where: { GroupId: loan.groupId } });
             const positiveVotes = loan.Votes.filter(v => v.vote === 'approve').length;
 
@@ -98,7 +98,7 @@ exports.approveLoan = async (req, res) => {
             loan.status = 'approved';
             loan.disbursementProof = disbursementProof;
             
-            // Optionally update group balance (decrease)
+            // Opcionalmente atualizar o saldo do grupo (diminuir)
             const group = loan.Group;
             group.balance = parseFloat(group.balance) - parseFloat(loan.amountRequested);
             await group.save();

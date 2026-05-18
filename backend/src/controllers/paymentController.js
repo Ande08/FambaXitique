@@ -60,7 +60,7 @@ exports.approvePayment = async (req, res) => {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
-    // Check if the requester is the admin of the group
+    // Verifica se o solicitante é o administrador do grupo
     const group = await Group.findByPk(payment.groupId);
     if (group.adminId !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to approve payments for this group' });
@@ -68,16 +68,16 @@ exports.approvePayment = async (req, res) => {
 
     if (action === 'approve') {
       payment.status = 'approved';
-      // Update group balance
+      // Atualizar saldo do grupo
       group.balance = parseFloat(group.balance) + parseFloat(payment.amount);
       await group.save();
 
-      // Update linked invoice if exists
+      // Atualizar a fatura vinculada, se existir
       if (payment.invoiceId) {
         await Invoice.update({ status: 'paid' }, { where: { id: payment.invoiceId } });
       }
 
-      // Update linked loan if exists (Progressive Abatement)
+      // Atualizar o empréstimo vinculado, se existir (Abatimento Progressivo)
       if (payment.loanId) {
         const loan = await Loan.findByPk(payment.loanId);
         if (loan) {
@@ -95,7 +95,7 @@ exports.approvePayment = async (req, res) => {
 
     await payment.save();
 
-    // Generate receipt if approved
+    // Gerar recibo, se aprovado
     if (action === 'approve') {
         try {
             const fullPayment = await Payment.findByPk(paymentId, {
@@ -109,7 +109,7 @@ exports.approvePayment = async (req, res) => {
             fullPayment.receiptPath = receiptPath;
             await fullPayment.save();
 
-            // Queue WhatsApp Notification
+            // Colocar Notificação de WhatsApp na fila
             let notificationType = 'PAYMENT_CONFIRMED';
             let message = `✅ Pagamento Confirmado!\nO valor de ${fullPayment.amount} MT foi adicionado ao seu saldo no grupo ${fullPayment.Group.name}.\nRecibo disponível no seu dashboard.`;
 
@@ -140,7 +140,7 @@ exports.approvePayment = async (req, res) => {
 
 exports.getPendingPayments = async (req, res) => {
     try {
-        // Find all groups where the user is an ADMIN
+        // Encontrar todos os grupos onde o utilizador é ADMIN
         const adminGroups = await Group.findAll({
             where: { adminId: req.user.id },
             attributes: ['id'],
@@ -179,7 +179,7 @@ exports.getUserPaymentHistory = async (req, res) => {
         const { userId, groupId } = req.params;
         const requesterId = req.user.id;
 
-        // Check if requester is a member or admin of the group
+        // Verifica se o solicitante é um membro ou administrador do grupo
         const membership = await Membership.findOne({
             where: { userId: requesterId, groupId }
         });
@@ -211,7 +211,7 @@ exports.downloadReceipt = async (req, res) => {
             return res.status(404).json({ message: 'Recibo não encontrado.' });
         }
 
-        // Allow owner or group admin to download
+        // Permitir que o proprietário ou administrador do grupo faça download
         const group = await Group.findByPk(payment.groupId);
         if (payment.userId !== req.user.id && group.adminId !== req.user.id) {
             return res.status(403).json({ message: 'Não autorizado.' });

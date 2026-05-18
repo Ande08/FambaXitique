@@ -28,12 +28,12 @@ router.get('/status/:phone', botAuth, botController.getStatus);
 router.post('/payment', botAuth, botController.submitBotPayment);
 router.post('/loan-request', botAuth, botController.submitBotLoanRequest);
 
-// Notifications
+// Notificações
 router.get('/notifications', botAuth, botController.getNotifications);
 router.post('/notifications/:id/sent', botAuth, botController.markNotificationSent);
 
-// Plans
-// Support
+// Planos
+// Suporte
 router.post('/support-request', botAuth, botController.requestSupport);
 
 module.exports = router;

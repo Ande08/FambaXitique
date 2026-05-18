@@ -12,7 +12,7 @@ const Loan = sequelize.define('Loan', {
     allowNull: false
   },
   interestRate: {
-    type: DataTypes.DECIMAL(5, 2), // e.g., 10.00 for 10%
+    type: DataTypes.DECIMAL(5, 2), // ex., 10.00 para 10%
     allowNull: false,
     defaultValue: 10.00
   },
@@ -30,7 +30,7 @@ const Loan = sequelize.define('Loan', {
   },
   disbursementProof: {
     type: DataTypes.STRING,
-    allowNull: true // Filled when admin approves
+    allowNull: true // Preenchido quando o administrador aprovar
   },
   notes: {
     type: DataTypes.TEXT,
