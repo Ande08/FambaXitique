@@ -97,7 +97,7 @@ Dentro do MySQL, rode:
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'SUA_SENHA_AQUI';
 FLUSH PRIVILEGES;
 EXIT;
-```
+``` 
 **Depois, edite o seu `backend/.env` e coloque a mesma senha!**
 
 ### Erro: Unknown database 'fambaxitique'

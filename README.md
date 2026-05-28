@@ -79,5 +79,8 @@ O projeto FambaXitique está estruturado em 3 módulos principais para fácil co
    - `npm install`
    - `npm run dev`
 
+
+Link do site: https://xitique.famba.online/
+
 ---
 © 2024 FambaXitique. Focado na inclusão financeira.
